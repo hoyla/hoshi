@@ -1,0 +1,197 @@
+Hoshi
+Copyright (C) 2026 Luke Hoyland
+https://github.com/hoyla/hoshi
+
+Hoshi is free software: you can redistribute it and/or modify it under the
+terms of the GNU Affero General Public License, version 3, as published by
+the Free Software Foundation. It is distributed in the hope that it will be
+useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. The licence is in the
+file LICENSE (LICENSE.txt in a bundle).
+
+Hoshi is the part that builds a bundle, installs it, sends documents to the
+translation engines, keeps a record of how each translation was made and
+warns when one looks as if it dropped text. It translates nothing itself.
+The translating is done by other people's work, which Hoshi fetches when a
+bundle is built and carries inside the bundle unchanged. This file says
+whose work that is and on what terms it is passed on.
+
+Hoshi is built from LibreTranslate's open source software. Hoshi is not
+officially associated with LibreTranslate or its products. Nor is it
+associated with, or endorsed by, Argos Open Technologies, Ollama, Google,
+Docker or the Wikimedia Foundation.
+
+Nothing below is legal advice. The licences were read on 17 November 2026;
+read them yourself before relying on this summary.
+
+
+------------------------------------------------------------------------
+What a bundle carries
+------------------------------------------------------------------------
+
+None of this is in Hoshi's source repository. MANIFEST.txt in each bundle
+records the exact versions, digests and checksums of what that bundle holds.
+
+1. LibreTranslate
+   The translation server, its web page and its document translation.
+
+   By the LibreTranslate contributors.
+   GNU Affero General Public License, version 3.
+   https://github.com/LibreTranslate/LibreTranslate
+
+   A bundle carries the official image libretranslate/libretranslate from
+   Docker Hub, at the version MANIFEST.txt names, with language models added
+   to it by Hoshi's Dockerfile. Nothing else in the image is changed. The
+   program's source is inside the image, under /app, and at the address
+   above under the same version tag.
+
+   The image also holds these, under the same licence, by the same project:
+     argos-translate-files   https://github.com/LibreTranslate/argos-translate-files
+     LexiLang                https://github.com/LibreTranslate/LexiLang
+     MiniSBD                 https://github.com/LibreTranslate/MiniSBD
+
+   "LibreTranslate" is a trademark. Its use is governed by
+   https://github.com/LibreTranslate/LibreTranslate/blob/main/TRADEMARK.md
+
+2. Argos Translate
+   The translation engine inside LibreTranslate.
+
+   Copyright (c) 2020 Argos Open Technologies, LLC.
+   MIT License, or Creative Commons CC0, at your choice.
+   https://github.com/argosopentech/argos-translate
+
+   It runs its models with:
+     CTranslate2     OpenNMT. MIT License.
+                     https://github.com/OpenNMT/CTranslate2
+     SentencePiece   Google. Apache License 2.0.
+                     https://github.com/google/sentencepiece
+     Stanza          The Board of Trustees of The Leland Stanford Junior
+                     University. Apache License 2.0.
+                     https://github.com/stanfordnlp/stanza
+
+3. The Argos language models
+   One package for each direction of each language, from the index at
+   https://github.com/argosopentech/argospm-index
+
+   Every package carries its own README, which names the data it was
+   trained on and the terms. A bundle has a copy of all of them in
+   licences/argos-language-models.txt. In the 100 packages LibreTranslate
+   1.9.6 installed on 17 November 2026:
+
+   - 57 are OPUS-MT models repackaged for Argos Translate. Their READMEs
+     say: "The original OPUS model from which this packaged model is
+     derived is licensed CC-BY 4.0", and cite Jörg Tiedemann and Santhosh
+     Thottingal, "OPUS-MT — Building open translation services for the
+     World", Proceedings of the 22nd Annual Conference of the European
+     Association for Machine Translation (EAMT), 2020.
+   - Nearly all were trained on parallel text collected by OPUS
+     (https://opus.nlpl.eu), which asks to be cited as: J. Tiedemann, 2012,
+     "Parallel Data, Tools and Interfaces in OPUS", in Proceedings of the
+     8th International Conference on Language Resources and Evaluation
+     (LREC 2012).
+   - The collections named include OpenSubtitles
+     (http://www.opensubtitles.org/, which asks for this link), ParaCrawl
+     (https://paracrawl.eu), CCMatrix, the United Nations Parallel Corpus,
+     Europarl, TED talk transcripts, Tatoeba, Global Voices and WikiMatrix.
+     Each has its own terms, given in the package's README.
+   - Dictionary data in some packages is from Wiktionary, by way of
+     Wiktextract (https://github.com/tatuylonen/wiktextract).
+   - Some packages include pretrained Stanza models (see 2 above).
+
+4. Ollama
+   The app that runs TranslateGemma.
+
+   Copyright (c) Ollama.
+   MIT License.
+   https://github.com/ollama/ollama
+
+   A bundle carries Ollama's own signed release, unchanged, fetched from
+   that address and checked against the checksum Ollama publishes.
+
+5. TranslateGemma
+   The translation model Ollama runs, built on Gemma 3.
+
+   By Google. Described in: Google Translate Research Team and others,
+   "TranslateGemma Technical Report", Google DeepMind, 2026.
+   https://arxiv.org/abs/2601.09012
+
+   This is not open-source software. Its terms require this notice:
+
+     Gemma is provided under and subject to the Gemma Terms of Use found at
+     ai.google.dev/gemma/terms
+
+   A bundle carries the model as Ollama publishes it, unchanged, and a copy
+   of the terms that came with it, in the licences folder. If you pass a
+   bundle to someone else, those terms require you to give them that copy
+   and to tell them the model is subject to the use restrictions in its
+   section 3.2. Those include the uses forbidden by the policy at
+   ai.google.dev/gemma/prohibited_use_policy
+
+   If a bundle was built with other models, their terms are in the licences
+   folder in the same way.
+
+6. Docker Desktop (Mac bundles only, unless built without it)
+   What runs the LibreTranslate image.
+
+   By Docker, Inc. Proprietary. Used under the Docker Subscription Service
+   Agreement: https://www.docker.com/legal/docker-subscription-service-agreement/
+
+   A bundle carries Docker's own signed installer for Apple Silicon Macs,
+   unchanged, fetched from Docker and checked against Docker's checksum.
+
+   Two things in that agreement, as last updated on 26 August 2026:
+
+   - It is free to use in "a commercial undertaking with fewer than 250
+     employees and less than US $10,000,000 (or equivalent local currency)
+     in annual revenue". A larger organisation needs a paid subscription for
+     every machine Docker Desktop is on. Docker's own summary of who may
+     use it without paying:
+     https://docs.docker.com/subscription/desktop-license/
+   - It says the customer may not "distribute, license, sublicense, lease,
+     rent, loan, or otherwise transfer the Services to any third party". So
+     a bundle with Docker Desktop in it is for machines in your own
+     organisation. For a bundle that is going to anyone else, build with
+     --no-docker-desktop and have them fetch Docker Desktop from Docker.
+
+7. The test files
+   Extracts from the Wikipedia articles on Earth in five languages.
+
+   By the contributors to those articles.
+   Creative Commons Attribution-ShareAlike 4.0 International.
+   https://creativecommons.org/licenses/by-sa/4.0/
+
+   test-files/README.md and test-files/sources.json give the revision each
+   came from, a link to its contributors and what was changed. These files
+   are in Hoshi's repository too, under this licence and not Hoshi's.
+
+
+------------------------------------------------------------------------
+What Hoshi's own code runs on
+------------------------------------------------------------------------
+
+The web page is a Python program run inside a container made from the
+LibreTranslate image, using libraries that image already holds:
+
+  Flask            Pallets. BSD 3-Clause License.
+                   https://github.com/pallets/flask
+  Waitress         Zope Foundation and contributors. Zope Public License 2.1.
+                   https://github.com/Pylons/waitress
+  Requests         Kenneth Reitz and contributors. Apache License 2.0.
+                   https://github.com/psf/requests
+  lxml             The lxml contributors. BSD 3-Clause License.
+                   https://github.com/lxml/lxml
+  Beautiful Soup   Leonard Richardson. MIT License.
+                   https://www.crummy.com/software/BeautifulSoup/
+  PyMuPDF          Artifex Software, Inc. GNU Affero General Public License,
+                   version 3, or a commercial licence from Artifex.
+                   https://github.com/pymupdf/PyMuPDF
+
+The page reads PDFs with PyMuPDF, which is one reason Hoshi is under the
+GNU Affero General Public License.
+
+The dropped-text check is written in Perl, which macOS and the LibreTranslate
+image both include. On a Mac, the translate helper reads documents with
+textutil, which is part of macOS.
+
+The list of TranslateGemma's language codes in languages.tsv was taken from
+https://ollama.com/library/translategemma on 16 November 2026.

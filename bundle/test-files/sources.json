@@ -1,0 +1,62 @@
+[
+  {
+    "language": "english",
+    "language_code": "en",
+    "body_words": 1003,
+    "title": "Earth",
+    "source": "https://en.wikipedia.org/w/index.php?oldid=1385809319",
+    "contributors": "https://en.wikipedia.org/w/index.php?curid=9228&action=history",
+    "licence": "CC BY-SA 4.0",
+    "licence_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "docx": "english.docx",
+    "pdf": "english.pdf"
+  },
+  {
+    "language": "arabic",
+    "language_code": "ar",
+    "body_words": 1009,
+    "title": "الأرض",
+    "source": "https://ar.wikipedia.org/w/index.php?oldid=77448858",
+    "contributors": "https://ar.wikipedia.org/w/index.php?curid=2793&action=history",
+    "licence": "CC BY-SA 4.0",
+    "licence_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "docx": "arabic.docx",
+    "pdf": "arabic.pdf"
+  },
+  {
+    "language": "russian",
+    "language_code": "ru",
+    "body_words": 995,
+    "title": "Земля",
+    "source": "https://ru.wikipedia.org/w/index.php?oldid=156125186",
+    "contributors": "https://ru.wikipedia.org/w/index.php?curid=4218&action=history",
+    "licence": "CC BY-SA 4.0",
+    "licence_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "docx": "russian.docx",
+    "pdf": "russian.pdf"
+  },
+  {
+    "language": "spanish",
+    "language_code": "es",
+    "body_words": 993,
+    "title": "Tierra",
+    "source": "https://es.wikipedia.org/w/index.php?oldid=176286525",
+    "contributors": "https://es.wikipedia.org/w/index.php?curid=2730&action=history",
+    "licence": "CC BY-SA 4.0",
+    "licence_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "docx": "spanish.docx",
+    "pdf": "spanish.pdf"
+  },
+  {
+    "language": "hebrew",
+    "language_code": "he",
+    "body_words": 999,
+    "title": "כדור הארץ",
+    "source": "https://he.wikipedia.org/w/index.php?oldid=44183832",
+    "contributors": "https://he.wikipedia.org/w/index.php?curid=250&action=history",
+    "licence": "CC BY-SA 4.0",
+    "licence_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "docx": "hebrew.docx",
+    "pdf": "hebrew.pdf"
+  }
+]

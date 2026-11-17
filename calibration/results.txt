@@ -1,0 +1,19 @@
+64 translations of Harbour authority paid consultant twice ...
+
+1. Reported on the translations as they are
+   (read each one against its source before calling it a false alarm)
+   libre rev ar: paragraph 4 (starts "هذا ليس ما قيل لمجلس الإدارة. سجلات اجتم…"): the translation is 82% shorter than expected and has 1 sentence against 4 in the source; check for dropped text
+   libre rev ar: paragraph 6 (starts "مسؤولة مالية سابقة في السلطة، طلبت عدم ا…"): the translation is 45% shorter than expected and has 2 sentences against 4 in the source; check for dropped text
+   libre rev ar: paragraph 8 (starts "تقول الشركات المحلية إنها تدفع الثمن. فق…"): the translation is 83% shorter than expected and has 1 sentence against 3 in the source; check for dropped text
+   libre rev ar: paragraph 12 (starts "هل لديك معلومات إضافية حول هذه القصة؟ يم…"): the translation is 63% shorter than expected and has 1 sentence against 3 in the source; check for dropped text
+   libre rev ru: paragraph 1 (starts "Портовая администрация дважды оплатила к…"): the translation is 41% shorter than expected; check for dropped text
+   724 paragraphs judged, 5 reported in their documents
+
+2. Share of removed sentences reported, by how much of its paragraph each was
+                                 n  in a document  alone, langs known  alone
+   all                        2295   76%            63%                 44%
+   under a fifth               649   38%            17%                  6%
+   a fifth to two fifths      1103   86%            74%                 45%
+   two fifths or more          543   99%            97%                 89%
+   gemma translations         1162   75%            56%                 37%
+   libre translations         1133   76%            71%                 52%

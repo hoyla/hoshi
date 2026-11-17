@@ -1,0 +1,9 @@
+# built bundles and download cache (multi-GB, rebuilt by build-bundle.sh)
+dist/
+.cache/
+__pycache__/
+
+# macOS and editor noise
+.DS_Store
+.claude/
+.vscode/

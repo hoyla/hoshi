@@ -1,0 +1,615 @@
+OFFLINE TRANSLATION
+===================
+
+Two translation engines that run entirely on one computer, a Mac or a
+Windows PC. Nothing leaves the machine and nothing here needs a network.
+Everything they need, language models included, is in this folder.
+
+  LibreTranslate   A web page at http://127.0.0.1:5050. Translates pasted text
+                   and whole documents, keeping their formatting. Fast.
+                   Quality is good enough to get the gist.
+
+  TranslateGemma   A Google translation model run by the Ollama app.
+                   Noticeably better translations. Plain text only. Slower.
+
+MANIFEST.txt lists exactly what this bundle contains: versions, model digests
+and the test translations made when it was built. NOTICE.txt says who made
+each part and on what terms it may be used and passed on.
+
+Contents of this guide:
+
+    What the computer needs
+    Copying the bundle to the computer
+    Installing on a Mac
+    Installing on Windows
+    Using it
+    Trying it on the test files
+    Languages and file types that give trouble
+    How far to trust it
+    After a restart
+    If something goes wrong
+    Removing it
+    Who made this, and passing it on
+
+
+WHAT THE COMPUTER NEEDS
+-----------------------
+A Mac
+    An Apple Silicon Mac (M1 or later) with macOS 14 or newer and 16 GB of
+    memory or more. It does not need Docker Desktop already: if it has none,
+    the installer puts on the copy in this folder (docker/Docker.dmg), which
+    takes the Mac's administrator password.
+
+A Windows PC
+    Windows 10 (version 22H2) or Windows 11, with Docker Desktop installed.
+    No administrator rights are needed.
+
+    LibreTranslate runs well on any such PC. TranslateGemma is quick only
+    on a PC whose graphics card has about 12 GB of its own memory (NVIDIA
+    or AMD). Without one it still works, but slowly: expect minutes for
+    each page. The installer times a test translation so you can tell
+    which kind of PC you have.
+
+Either one
+    About 30 GB of free disk space. If MANIFEST.txt lists more than one
+    TranslateGemma model, add the size of each extra one (the 27b model is
+    17 GB).
+
+Docker Desktop is free for personal use and for small organisations. Larger
+ones need a paid Docker subscription for every machine it is on, so check
+with whoever looks after software licences before installing it at work.
+Docker does not allow its installer to be passed on to other organisations
+(see the last section of this guide).
+
+
+COPYING THE BUNDLE TO THE COMPUTER
+----------------------------------
+  1. Use a drive formatted as exFAT. Macs and Windows PCs can both read and
+     write it, and it holds very large files. (The older FAT32 format cannot
+     hold the largest files here. A drive formatted for only one kind of
+     computer may not open on the other.)
+
+  2. Copy this whole folder to the drive. Keep the file and folder names as
+     they are. The bundle is somewhere between 18 and 50 GB depending on
+     what was built into it, so allow half an hour or more, and eject the
+     drive properly before unplugging it.
+
+     To save space and time you can leave out the big files meant for the
+     other kind of computer:
+
+         for a Mac only, leave out      docker/...-amd64.tar
+                                        ollama/OllamaSetup.exe
+
+         for Windows only, leave out    docker/...-arm64.tar
+                                        docker/Docker.dmg
+                                        ollama/Ollama-darwin.zip
+
+     (Keep the -arm64 file for a Windows PC with a Snapdragon or other ARM
+     processor.) Copy everything else.
+
+  3. Plug the drive into the airgapped computer. You can install straight
+     from the drive, or copy the folder to the computer first if you would
+     rather. Installing from the drive saves disk space.
+
+The installer checks every file against the list in SHA256SUMS before it
+does anything, so a file damaged in copying is caught rather than installed.
+
+
+INSTALLING ON A MAC
+-------------------
+Open Terminal (in Applications > Utilities), type cd and a space, drag this
+folder into the Terminal window, and press Return. Then run:
+
+    ./install.sh
+
+It checks the files, loads LibreTranslate into Docker, copies Ollama.app into
+/Applications and the model into ~/.ollama/models, and puts the translate.sh
+helper and some test files in ~/translation-tools. It finishes by running a
+test translation through each engine. Allow 15 to 30 minutes. It is safe to run again.
+
+If the Mac has no Docker
+    The installer says so and waits for you to press Return. It then
+    installs Docker Desktop from this folder:
+
+      1. Type the Mac's administrator password when Terminal asks for it.
+         Nothing shows as you type. Press Return.
+      2. Docker opens and shows its service agreement. Read it and accept
+         it. The installer does not accept it for you.
+      3. Skip signing in, the survey and any offer to update. If macOS asks
+         for the password again for Docker, give it.
+
+    The installer waits while you do this, and carries on by itself once
+    Docker is ready.
+
+If Docker is installed but not open, the installer opens it and waits.
+
+Every run writes a log of what it did and what it found, named
+install-DATE.log, in ~/translation-tools. If an install fails, that file
+holds everything the installer printed.
+
+Run ./install.sh --help for options (different port, skip one engine, etc).
+
+
+INSTALLING ON WINDOWS
+---------------------
+  1. Start Docker Desktop and wait until it says it is running. If it asks
+     you to sign in or to update, skip both.
+  2. Open this folder in File Explorer and double-click install.cmd.
+     (Depending on your settings it may show as just "install", of type
+     "Windows Command Script".)
+
+A black window opens and reports each step. It checks the files, loads
+LibreTranslate into Docker, copies the model into the .ollama folder in your
+user folder, installs Ollama for your user account, and puts the translate
+helper and some test files in the translation-tools folder in your user
+folder. It finishes by
+running a test translation through each engine and saying how long
+TranslateGemma took. Allow 10 to 30 minutes. When it says "Press any key to
+continue", read the summary above that line, then press a key to close the
+window. It is safe to run again.
+
+If Windows shows a blue "Windows protected your PC" box, choose More info,
+then Run anyway.
+
+For options (different port, skip one engine, etc), open Command Prompt in
+this folder and run:   install.cmd --help
+
+
+USING IT
+--------
+On the translation page (only on a Mac where it has been added)
+    The page is a small, separate update, installed after this bundle with
+    its own installer, install-web.sh. If this Mac has it, open
+    http://127.0.0.1:5080. It translates a document or pasted text with
+    either engine, takes the text out of Word files and PDFs for
+    TranslateGemma itself, makes the checks described under "How far to
+    trust it", and keeps every translation, with a record of how it was
+    made, in ~/translation-tools/translations. The update's own README.txt
+    says more. The rest of this section is about the two ways every
+    installation has.
+
+In LibreTranslate's own page (Mac or Windows)
+    Open http://127.0.0.1:5050. Paste text, or use "Translate Files" for
+    .docx .pptx .odt .odp .pdf .html .epub .srt .txt. Before translating
+    a PDF, read "Languages and file types that give trouble" below.
+
+From the command line (without the translation page, this is the only way
+to get the better engine and a record of what was done)
+
+    On a Mac, in Terminal:
+
+        ~/translation-tools/translate.sh --from ru --to en statement.txt
+        ~/translation-tools/translate.sh --to en contract.docx
+        ~/translation-tools/translate.sh --from ar --to en --text "..."
+
+    On Windows, in Command Prompt (open the Start menu and type cmd):
+
+        %USERPROFILE%\translation-tools\translate.cmd --from ru --to en statement.txt
+        %USERPROFILE%\translation-tools\translate.cmd --to en contract.docx
+        %USERPROFILE%\translation-tools\translate.cmd --from ar --to en --text "..."
+
+    Type the command, a space, then drag the document into the window to
+    fill in its full name. The options are the same on both; the examples
+    below say translate.sh, so read translate.cmd on Windows.
+
+    .txt and .md files go to TranslateGemma; everything else goes to
+    LibreTranslate. Force one with --engine gemma or --engine libre.
+    Leave out --from and the language is detected for you.
+    Common codes: en ru fr zh he ar. Full list: translate.sh --languages
+
+    Text that is not UTF-8 (common for older Russian, Hebrew, Arabic and
+    Chinese files) needs --encoding, for example --encoding CP1251.
+
+    If MANIFEST.txt lists more than one TranslateGemma model, the helper
+    uses the first. --model picks another, for example
+    --model translategemma:27b. The bigger model is slower and has not
+    proved better: see "How far to trust it" below.
+
+What you get
+    statement.txt                             your original, never changed
+    statement.en.gemma.txt                    the translation
+    statement.en.gemma.txt.provenance.json    how it was made: hash of the
+                                              original, engine, exact model,
+                                              languages, time, any warnings
+
+    Running the same command again does nothing if the original and the
+    engine are unchanged. If either changed, or you pass --force, a new
+    timestamped translation is written beside the old one. Nothing is
+    overwritten.
+
+In the Ollama window
+    You can chat with the model directly, but TranslateGemma expects a fixed
+    instruction before the text, so translate.sh --text is easier.
+
+
+TRYING IT ON THE TEST FILES
+---------------------------
+The installer puts a folder of practice documents beside the helper:
+~/translation-tools/test-files on a Mac, translation-tools\test-files in
+your user folder on Windows. Use them to check that everything works and to
+see what each engine's output looks like before you trust it with a real
+document.
+
+They are passages of about 1,000 words from Wikipedia's article on Earth in
+five languages, each as a Word file and as a PDF:
+
+    english   spanish   russian   arabic   hebrew       (.docx and .pdf)
+
+Each language's passage is different; they are not translations of one
+another. README.md in the folder says where each came from. They are
+published under the Creative Commons BY-SA 4.0 licence.
+
+On a Mac, in Terminal:
+
+    cd ~/translation-tools/test-files
+    ../translate.sh --to en russian.docx
+    ../translate.sh --to en arabic.pdf
+
+    textutil -convert txt -encoding UTF-8 arabic.docx
+    ../translate.sh --to en arabic.txt
+
+On Windows, in Command Prompt:
+
+    cd /d %USERPROFILE%\translation-tools\test-files
+    ..\translate.cmd --to en russian.docx
+    ..\translate.cmd --to en arabic.pdf
+
+    Then open arabic.docx in Word, use Save As, choose Plain Text and then
+    Unicode (UTF-8), save it as arabic.txt in the same folder, and run:
+
+    ..\translate.cmd --to en arabic.txt
+
+The first two commands of each set use LibreTranslate and give back a Word
+file and a PDF. The last uses TranslateGemma and gives back plain text. The
+translations appear in the same folder, beside the originals.
+
+What came back in testing in November 2026, with LibreTranslate 1.9.6
+(translating into English; the English file was translated into French):
+
+                 LibreTranslate      LibreTranslate      TranslateGemma 12b
+                 Word file           PDF                 text of the Word file
+
+    spanish      reads well          can be followed;    reads well
+    russian                          sentences broken
+    english                          at line ends
+
+    hebrew       rough; one figure   scrambled           reads well; every
+                 came out changed                        figure correct
+
+    arabic       several passages    scrambled           reads well
+                 missing, a phrase
+                 repeated over
+                 and over
+
+If you get much the same, the installation is working: the poor results in
+that table are the engines' limits, not a fault on your computer. The next
+section says what to do about them.
+
+On the fast Mac used for the test, LibreTranslate took 3 to 15 seconds for
+each file, TranslateGemma 12b took 30 to 45 seconds and TranslateGemma 27b
+took one to two minutes. A slower computer takes longer, and a Windows PC
+without a suitable graphics card takes much longer for TranslateGemma.
+
+You can delete the translations, or the whole test-files folder, whenever
+you like. Running the installer again puts the originals back.
+
+
+LANGUAGES AND FILE TYPES THAT GIVE TROUBLE
+------------------------------------------
+This comes from testing with the files above, so it covers five languages.
+For any other language, first translate a document whose contents you
+already know and see how it does.
+
+PDFs
+    LibreTranslate translates a PDF one small piece at a time: each printed
+    line by itself, and a line is cut again wherever the font changes. It
+    never sees a whole sentence that runs over a line.
+
+    In Spanish, Russian and other left-to-right languages the result can
+    be followed but is worse than the same text from a Word file. In Arabic
+    and Hebrew it cannot be used: numbers come loose from their sentences,
+    the order is muddled, and stray words such as "No." and "What?" appear
+    that are not in the original. Expect the same of other right-to-left
+    languages (Persian, Urdu); those were not tested.
+
+    What to do instead, best first:
+
+      1. If you have the same document as a Word file or as text, translate
+         that and leave the PDF alone.
+      2. Otherwise copy the text out. Open the PDF, select all of it, copy,
+         and paste into a new plain-text file (on a Mac, TextEdit with
+         Format > Make Plain Text; on Windows, Notepad). Save it with a
+         name ending .txt and translate that. Copying can itself muddle
+         right-to-left text, and this was not tested, so compare a few
+         lines with the PDF before you rely on it.
+      3. Use the translated PDF only to see what a left-to-right document
+         is about.
+
+    A scanned PDF is a picture of each page and holds no text. If you
+    cannot select words in it with the mouse, nothing here can read it:
+    this bundle has no text recognition (OCR).
+
+Arabic and Hebrew
+    LibreTranslate is much weaker in these than in Russian or Spanish. In
+    the test it left several passages out of the Arabic Word file without
+    saying so, and it changed a figure in the Hebrew one (0.5 km a second
+    became 0.2). TranslateGemma translated both in full with the figures
+    intact.
+
+    So for these two languages use TranslateGemma for anything you will
+    act on: save the document as plain text (the next section shows how)
+    and translate the .txt file. Keep LibreTranslate for a first look.
+
+    A Word file translated from Arabic or Hebrew keeps its right-to-left
+    layout, so the English sits against the right margin with its full
+    stops at the wrong end of the line. The words are not affected. In
+    Word, select everything and set the paragraphs to left-to-right.
+
+Numbers, names and web addresses
+    Check every figure you intend to use against the original; the digits
+    can usually be matched even if you cannot read the language.
+    LibreTranslate also sometimes "translates" things that should be left
+    alone. It garbled a web address in the Hebrew test file. Take web and
+    email addresses, reference numbers and names from the original.
+
+Older Word files (.doc)
+    Only .docx is accepted. Open the file in Word and save it as .docx, or
+    save it as plain text.
+
+Text that shows as nonsense letters before it is translated
+    See "isn't valid UTF-8" under "If something goes wrong".
+
+
+HOW FAR TO TRUST IT
+-------------------
+This is machine translation. Use it to find out what a document says and
+whether it matters. Do not quote from it. Names, numbers, dates, negations
+and idioms are where it goes wrong, and it can read fluently while being
+wrong. Anything that will be published needs a human translator working from
+the original.
+
+LibreTranslate goes through English when neither language is English (Russian
+to French is really Russian to English to French), so errors compound.
+
+LibreTranslate can also leave out whole sentences and say nothing. In testing
+it did so repeatedly from Arabic into English: it left several passages out
+of the Arabic test file, and in a twelve-paragraph article it cut three
+paragraphs down to a single sentence each.
+TranslateGemma translated both in full, but those were two documents, and
+TranslateGemma can drop text too. Never take either engine's output as proof
+that something is absent from a document. For anything that matters, put the
+text through both and compare. To get plain text out of a Word document on a
+Mac:
+
+    textutil -convert txt -encoding UTF-8 contract.docx
+
+This writes contract.txt beside the original. On Windows, open the document
+in Word and use Save As, choosing Plain Text and then Unicode (UTF-8). The
+record the helper keeps for a translation of contract.txt describes that
+file, not the Word document it came from, so keep the two together.
+
+TranslateGemma handles long texts in pieces of a few paragraphs, so it does
+not see the whole document at once. Terms may be rendered inconsistently
+between pieces.
+
+The bigger TranslateGemma model (27b), where the bundle has it, is not a
+safe step up. On the Arabic test file it shortened the first half instead
+of translating it. That half came out nearly a third shorter than the 12b
+model's, without (among other things) the number of countries in the world,
+and two runs on the same file gave slightly different wording. The 12b
+model translated that file in full. On the other four test files the two
+models produced about the same amount of text. That is one bad file out of
+five, on one computer. Until someone has compared them properly, use 12b,
+and check anything 27b produces against it.
+
+If the helper prints a warning, read it. It makes two checks, and records
+what they find in the .provenance.json file.
+
+With TranslateGemma, on a Mac or on Windows, it checks each piece for signs
+that the model dropped or merged text: a different number of paragraphs or
+lines, or a reply that was cut short. It warned about the shortened Arabic
+above. A warning does not always mean a loss: the model joining two short
+lines into one sentence sets it off, and so can a text whose lines were
+broken by hand.
+
+With either engine, the helper then compares each paragraph of the
+translation with the original and warns when one is much shorter or longer
+than it should be, or somewhat shorter and missing a sentence:
+
+    warning: paragraph 4 (starts "..."): the translation is 82% shorter
+    than expected and has 1 sentence against 4 in the source; check for
+    dropped text
+
+Go to that paragraph in the original, and try the other engine on it. The
+provenance file has a line saying what was compared.
+
+With LibreTranslate, this check sees more when you give --from than when
+the language is left to be detected. If you know the language, give it.
+
+What this second check does not do:
+
+  - It does not run in LibreTranslate's own page in the browser.
+  - It cannot read every kind of file. Text, .srt and Word (.docx) files
+    are compared on a Mac and on Windows. .odt and .html files are
+    compared on a Mac only. .pdf, .pptx, .odp and .epub files are not
+    compared at all. The provenance file of a file that was not compared
+    says "not checked".
+  - When the translation has a different number of lines from the
+    original, it can only compare the two as a whole, and then it notices
+    only a large loss.
+  - It rarely notices the loss of a sentence that was less than a fifth of
+    its paragraph. In testing it caught about three in four sentences
+    removed from a document, and nearly all of the long ones.
+  - It knows nothing about whether the words are right.
+
+A translation with no warnings can still be wrong.
+
+
+AFTER A RESTART
+---------------
+Start Docker Desktop; LibreTranslate comes back by itself, and so does the
+translation page if it was added.
+
+For TranslateGemma, Ollama has to be running. On a Mac, open Ollama from
+Applications. On Windows it normally starts when you sign in (a llama icon
+near the clock); if it has not, open Ollama from the Start menu.
+
+
+IF SOMETHING GOES WRONG
+-----------------------
+On either kind of computer
+
+"Docker isn't running" or "Docker didn't become ready"
+    Open Docker Desktop yourself and wait until it says it is running. It
+    may ask you to accept its agreement, sign in or update; accept the
+    first and skip the others. Then run the installer again.
+
+"checksum verification failed"
+    A file was damaged or cut short while copying. The lines above the
+    error name the files. Copy those again from the original and re-run.
+
+"port 5050 is already in use"
+    Run the installer again with --port 5051 (the helper remembers the port).
+
+"couldn't reach Ollama"
+    Open Ollama (Applications on a Mac, the Start menu on Windows) and try
+    again. The first translation after opening it takes a minute or more
+    while the model loads.
+
+"isn't valid UTF-8"
+    Pass --encoding with the file's real encoding. CP1251 for Russian, CP1255
+    Hebrew, CP1256 Arabic, GBK or Big5 Chinese, UTF-16 for "Unicode" text
+    saved by Windows.
+
+"runs past 6000 bytes with no sentence break"
+    The text has a very long line with no punctuation the helper can split
+    on (often a table or extraction debris). Break it up, or use
+    --engine libre.
+
+Ollama was already installed in an older version
+    The installer leaves an existing Ollama alone. To switch to the bundled
+    one: quit Ollama, remove the old one (move the app to the Trash on a
+    Mac; Settings > Apps on Windows), and run the installer again.
+
+On a Mac
+
+"Docker's installer failed"
+    The lines above the error are Docker's own. To install it by hand,
+    open the docker folder here, double-click Docker.dmg, drag Docker to
+    Applications, and open it once. Then run ./install.sh again.
+
+"no space left on device" while loading the image
+    Docker keeps images in its own disk, with a size limit separate from
+    the Mac's. Raise it in Docker Desktop under Settings > Resources, or
+    remove an image you no longer need (docker image ls, then
+    docker image rm NAME). Nothing removed can be downloaded again on
+    this Mac. Then run ./install.sh again.
+
+"permission denied" when running ./install.sh
+    Run   bash install.sh   instead.
+
+On Windows
+
+The window says running scripts is disabled, or closes at once
+    Your organisation's settings block PowerShell scripts, and install.cmd
+    cannot get past that kind of block. Whoever manages the PC needs to
+    allow it.
+
+"Docker Desktop is set to Windows containers"
+    Right-click the Docker whale near the clock, choose "Switch to Linux
+    containers", wait for Docker to restart, and run install.cmd again.
+
+"docker was not found"
+    Docker Desktop is not installed, or was installed after this window was
+    opened. Close the window and start again.
+
+"no space left on device" while loading the image
+    The drive Docker keeps its images on (usually C:) is full. Free some
+    space, or remove an image you no longer need (docker image ls, then
+    docker image rm NAME). Nothing removed can be downloaded again on
+    this PC. Then run install.cmd again.
+
+TranslateGemma takes minutes for a short text
+    The PC has no graphics card the model can use, so it is running on the
+    processor alone. It will finish; give long documents an hour or more,
+    or use --engine libre for a quick first reading.
+
+Russian, Arabic, Hebrew or Chinese shows as boxes or question marks in the
+Command Prompt window
+    The window cannot draw those letters; the translation itself is fine.
+    Translate a file rather than using --text, and open the result in
+    Notepad or Word.
+
+
+REMOVING IT
+-----------
+On a Mac
+
+    docker rm -f libretranslate
+    docker image rm $(grep '^LT_IMAGE=' ~/translation-tools/bundle.env | cut -d= -f2)
+
+    If the translation page was added, also run:
+
+        docker rm -f translation-web
+
+    and move ~/translation-tools/translations somewhere else if you want
+    to keep what it translated.
+
+    Then move Ollama.app to the Trash and delete ~/translation-tools.
+    ~/.ollama holds the models. Delete it only if this Mac had no Ollama
+    before: it holds every Ollama model on the Mac, not just these.
+
+    If the installer put Docker Desktop on the Mac (its log says so) and
+    you want that gone as well, run:
+
+        /Applications/Docker.app/Contents/MacOS/uninstall
+
+    and then move Docker.app to the Trash.
+
+On Windows, in Command Prompt
+
+    docker rm -f libretranslate
+    findstr /b LT_IMAGE= "%USERPROFILE%\translation-tools\bundle.env"
+    docker image rm NAME        (NAME is what the line above printed after =)
+
+    Then uninstall Ollama in Settings > Apps, and delete the
+    translation-tools folder in your user folder. The .ollama folder there
+    holds the models. Delete it only if this PC had no Ollama before: it
+    holds every Ollama model on the PC, not just these.
+
+
+WHO MADE THIS, AND PASSING IT ON
+--------------------------------
+This bundle was built with Hoshi, https://github.com/hoyla/hoshi. Hoshi is
+the installers, the translate helpers and the checks they make. It is free
+software under the GNU Affero General Public License, version 3, which is in
+LICENSE.txt.
+
+The translating is done by other people's work, carried here unchanged:
+
+    LibreTranslate    by the LibreTranslate contributors
+    Argos Translate   by Argos Open Technologies, with language models
+                      trained on text collected by the OPUS project
+    Ollama            by Ollama
+    TranslateGemma    by Google
+    Docker Desktop    by Docker (only if this bundle has a docker folder)
+    the test files    by the contributors to Wikipedia
+
+NOTICE.txt gives each one's licence and where its source is. The licences
+folder holds the terms that came with each TranslateGemma model and the
+credits for every language model.
+
+Hoshi is not officially associated with LibreTranslate or its products, or
+with any of the others.
+
+If you give this bundle to someone else:
+
+    - Give them the whole folder, so the notices and licences go with it.
+    - TranslateGemma is not open-source software. Google's terms for it are
+      in the licences folder and bind whoever uses it. They forbid some
+      uses; tell the person you give it to.
+    - Docker's agreement does not allow Docker Desktop to be passed on to
+      another organisation. If this bundle has a docker folder, don't give
+      it to one. Ask whoever built it for a bundle built without Docker
+      Desktop; a Mac it goes on then needs Docker Desktop from Docker's
+      own site first.

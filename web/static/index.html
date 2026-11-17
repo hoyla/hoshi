@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Offline translation</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header>
+  <div>
+    <h1>Offline translation</h1>
+    <p class="sub">Runs on this computer. Nothing you translate leaves it.</p>
+  </div>
+  <ul id="status" aria-label="Engines"></ul>
+</header>
+
+<main>
+  <section id="pick">
+    <h2>1. What to translate</h2>
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" id="tab-file" aria-selected="true">A document</button>
+      <button type="button" role="tab" id="tab-text" aria-selected="false">Pasted text</button>
+    </div>
+    <div id="by-file">
+      <label id="drop" for="file">
+        <strong>Choose a document</strong> or drop one here
+        <span id="formats" class="hint"></span>
+      </label>
+      <input type="file" id="file" class="visually-hidden">
+    </div>
+    <div id="by-text" hidden>
+      <label for="text" class="visually-hidden">Text to translate</label>
+      <textarea id="text" rows="8" dir="auto" placeholder="Paste the text here"></textarea>
+      <button type="button" id="use-text">Use this text</button>
+    </div>
+    <p id="pick-error" class="box bad" hidden></p>
+    <div id="summary" hidden></div>
+  </section>
+
+  <section id="choose" hidden>
+    <h2>2. How to translate it</h2>
+    <div class="engines">
+      <label class="card" id="card-gemma">
+        <input type="radio" name="engine" value="gemma">
+        <span class="name">TranslateGemma</span>
+        <span class="what">The better translation. Gives back plain text, without the document's layout. About a minute for every thousand words, more on a slower computer.</span>
+        <span class="why-not"></span>
+      </label>
+      <label class="card" id="card-libre">
+        <input type="radio" name="engine" value="libre">
+        <span class="name">LibreTranslate</span>
+        <span class="what">Keeps the document's layout and gives back the same kind of file. Quick, and good enough to see what a document is about. Weak on Arabic and Hebrew.</span>
+        <span class="why-not"></span>
+      </label>
+    </div>
+    <div class="fields">
+      <label>From <select id="source"></select></label>
+      <label>Into <select id="target"></select></label>
+      <label id="model-field" hidden>Model <select id="model"></select></label>
+      <label id="encoding-field" hidden>Text encoding
+        <select id="encoding">
+          <option value="">UTF-8</option>
+          <option>UTF-16</option>
+          <option value="CP1251">CP1251 (Russian)</option>
+          <option value="CP1255">CP1255 (Hebrew)</option>
+          <option value="CP1256">CP1256 (Arabic)</option>
+          <option value="CP1252">CP1252 (Western European)</option>
+          <option value="GBK">GBK (Chinese)</option>
+          <option value="Big5">Big5 (Chinese)</option>
+        </select>
+      </label>
+    </div>
+    <ul id="advice" class="box warn" hidden></ul>
+    <p id="go-error" class="box bad" hidden></p>
+    <button type="button" id="go" class="primary">Translate</button>
+  </section>
+
+  <section id="progress" hidden>
+    <h2>Translating</h2>
+    <p id="progress-text"></p>
+    <progress id="bar" max="1" value="0"></progress>
+    <p><button type="button" id="cancel">Stop</button> <span id="progress-hint" class="hint"></span></p>
+  </section>
+
+  <section id="result" hidden></section>
+
+  <section id="history" hidden>
+    <h2>Earlier translations</h2>
+    <p class="hint">Everything translated here is kept in <code id="folder"></code>, each with a provenance file recording how it was made.</p>
+    <table>
+      <thead><tr><th>Translation</th><th>From</th><th>Into</th><th>Engine</th><th>When (UTC)</th><th></th></tr></thead>
+      <tbody id="history-rows"></tbody>
+    </table>
+  </section>
+</main>
+<footer id="about" class="hint"></footer>
+<script src="/static/app.js"></script>
+</body>
+</html>
