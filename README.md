@@ -16,7 +16,8 @@ of machine, and every model is inside it.
 | Runs in | Docker | Ollama, natively on macOS or Windows |
 | Good for | Whole documents with formatting (.docx, .pptx, .pdf, .html ...), quick gisting | Best available quality on plain text |
 | Languages | 50 (every Argos Translate model, 100 packages) | 55 core languages |
-| Interface | Its own web page on `127.0.0.1:5050`, `translate.sh` / `translate.cmd`, [Hoshi's page](#the-web-page-mac-only) | `translate.sh` / `translate.cmd`, [Hoshi's page](#the-web-page-mac-only), Ollama's chat window |
+| On a Mac | [Hoshi's page](#the-web-page-mac-only) on `127.0.0.1:5080`, `translate.sh` | The same page, `translate.sh`, Ollama's chat window |
+| On Windows | Its own web page on `127.0.0.1:5050`, `translate.cmd` | `translate.cmd`, Ollama's chat window |
 | Size in bundle | 9 to 11 GB per target | about 8 GB, shared |
 
 Both cover English, Russian, French, Chinese, Hebrew and Arabic.
@@ -107,7 +108,9 @@ about an hour at 5 MB/s. Both targets come to about 29 GB of downloads. It:
    Ollama on a private port so your own Ollama setup is untouched, and runs a
    test translation from that store
 5. copies in the scripts, the user guide and the test documents in
-   [bundle/test-files/](bundle/test-files/)
+   [bundle/test-files/](bundle/test-files/), and for the Mac target
+   [the web page](#the-web-page-mac-only), after checking that the page
+   splits text exactly as `translate.sh` does
 6. writes `MANIFEST.txt` (the commit of these scripts, versions, digests, test
    results, every language model's version) and `SHA256SUMS` for every file
 
@@ -135,6 +138,12 @@ administrator's password), opens Docker and waits for it. It does not accept
 Docker's service agreement: the person at the Mac does that in Docker's window.
 If Docker is installed but not running, it starts it.
 
+`install.sh` also starts [the web page](#the-web-page-mac-only) and ends by
+opening it, and starts LibreTranslate with its own page turned off.
+`--no-web` installs neither change: no page from Hoshi, and LibreTranslate's
+own on port 5050. `install.cmd` has no page to start, so on Windows
+LibreTranslate's own page stays.
+
 Each run of `install.sh` writes `~/translation-tools/install-DATE.log`: the
 Mac's model, memory and macOS version, the bundle's build time and commit,
 Docker's version and image store, Docker's disk use before and after the image
@@ -158,16 +167,29 @@ installing on each platform, using it, and what to do when something fails.
 engine, at `http://127.0.0.1:5080`. It runs in a second container started from
 the LibreTranslate image already in Docker, with the page's files handed to it
 from `~/translation-tools/web`. The image is not rebuilt, so the image ID that
-LibreTranslate sidecars record does not change, and the page can be shipped on
-its own: `./build-web-patch.sh` builds `dist/translation-web-DATE-TIME/`, about
-100 KB, and `bash install-web.sh` in that folder adds the page to a Mac where
-the full bundle is installed. The full bundle does not carry the page, and
-there is no Windows installer for it.
+LibreTranslate sidecars record does not change. There is no Windows installer
+for it.
 
+- **Every Mac bundle carries it**, and `install.sh` starts it by running
+  [bundle/install-web.sh](bundle/install-web.sh) as its last step.
+- **It can be replaced without copying a bundle again.**
+  `./build-web-patch.sh` builds `dist/translation-web-DATE-TIME/`, about
+  170 KB, and `bash install-web.sh` in that folder replaces the page on a Mac
+  where a bundle is installed. Both builders lay the page out with
+  [web/assemble.sh](web/assemble.sh), so an update and a bundle built from
+  the same commit carry the same files.
+- **Where `install.sh` starts the page, LibreTranslate's own is turned off.**
+  That page keeps no record of a translation and makes no check of one, so it
+  is not left beside one that does. `install.sh` starts the LibreTranslate
+  container with `LT_DISABLE_WEB_UI=true`, which makes `/` and `/js/app.js`
+  answer 404 and leaves the API, which the page and `translate.sh` use, as it
+  was. `install-web.sh` run on its own never touches the LibreTranslate
+  container, so a Mac whose bundle had no page and which got one as an update
+  has both until a bundle is installed on it again.
 - **Same TranslateGemma method as `translate.sh`.** [web/gemma.py](web/gemma.py)
   is a port of the helper's splitter, prompt and missing-text check.
   `python3 web/tests/test_parity.py` runs the helper's own awk on the same
-  texts and compares; `build-web-patch.sh` refuses to build if they differ. On
+  texts and compares; both builders refuse to build if they differ. On
   the five Word test documents the page's translations are byte-identical to
   the helper's.
 - **Documents for TranslateGemma are read inside the container**
@@ -179,7 +201,7 @@ there is no Windows installer for it.
   Arabic test PDF lost a heading in translation that the .docx kept. The page
   says so when someone picks such a file.
 - **The dropped-text check is the helper's own program.**
-  `build-web-patch.sh` takes the perl out of `translate.sh` and ships it as
+  `web/assemble.sh` takes the perl out of `translate.sh` and ships it as
   `web/check.pl`, and the page runs it with the perl in the LibreTranslate
   image ([web/check.py](web/check.py)). There is no second copy to drift. See
   [the dropped-text check](#the-dropped-text-check) for which files it reads.
@@ -378,12 +400,12 @@ Two weaknesses turned up in use:
 LICENSE                the GNU Affero General Public License, version 3
 NOTICE                 whose work a bundle carries, and on what terms
 build-bundle.sh        run on the connected Mac
-build-web-patch.sh     builds the small update that carries the web page
+build-web-patch.sh     builds the small update that replaces the web page
 Dockerfile             official LibreTranslate image + baked-in models
 bundle/                copied into every bundle (each target gets its own scripts)
   install.sh           run on the airgapped Mac
-  install-web.sh       adds the web page to a Mac with the bundle installed;
-                         goes in the page's update, not in a bundle
+  install-web.sh       starts the web page; run by install.sh, and by hand
+                         from a page update
   translate.sh         command-line helper, installed to ~/translation-tools
   install.cmd          double-clicked on the airgapped PC; runs install.ps1
   install.ps1          the Windows installer
@@ -394,6 +416,7 @@ bundle/                copied into every bundle (each target gets its own script
   test-files/          documents to try, installed beside the translate helper
 web/                   the web page: app.py, gemma.py, extract.py, check.py,
                          static/, tests/
+  assemble.sh          lays the page out for a bundle or a page update
 calibration/           how the dropped-text check's thresholds were measured
   en.txt               the test article
   data/                its 64 machine translations
@@ -495,8 +518,9 @@ changed.
   Linux-containers mode. `install.cmd` says so if it isn't.
 - **macOS.** Ollama needs macOS 14 or newer on the target.
 - **Windows.** Ollama asks for Windows 10 22H2 or newer.
-- **Port.** LibreTranslate is published on 5050 because macOS's AirPlay
+- **Ports.** LibreTranslate is published on 5050 because macOS's AirPlay
   Receiver holds 5000. Windows uses the same port so the instructions match.
+  The web page is on 5080. Both answer on 127.0.0.1 only.
 - **Docker's image store changes the sizes.** Docker Desktop has an older
   image store and a newer one (containerd, the default on recent fresh
   installs). `docker info --format '{{.Driver}}'` prints `overlay2` for the
@@ -568,6 +592,11 @@ bundle or re-run that bundle's installer:
 docker load -i docker/libretranslate-offline-v1.9.6-arm64.tar
 ```
 
+To install a smoke bundle beside a real installation, give `install.sh` its
+own `--prefix`, `--port`, `--name`, `--web-port` and `--web-name`, and set
+`OLLAMA_MODELS` to a scratch folder so the model is not copied into the real
+store.
+
 ## Status (2026-11-17)
 
 This is the manual testing record from before the automated regression workflow
@@ -583,13 +612,16 @@ emulation.
 
 **Builds**
 
-- *From this repository:* the smoke build below for the Mac target, and
-  `build-web-patch.sh`, both from the files as they were just before the
-  first commit. They are what tested the credits: each output carried
-  `NOTICE.txt` and `LICENSE.txt`, the bundle carried `licences/` with the
-  terms of its Ollama model and the READMEs of its language models, and
-  every file matched `SHA256SUMS`. Neither was installed. No full-size bundle
-  has been built from this repository
+- *From this repository:* the smoke build above for the Mac target, and
+  `build-web-patch.sh`, twice each. The first pair, from the files as they
+  were just before the first commit, is what tested the credits: each output
+  carried `NOTICE.txt` and `LICENSE.txt`, the bundle carried `licences/` with
+  the terms of its Ollama model and the READMEs of its language models, and
+  every file matched `SHA256SUMS`. Neither was installed. The second pair,
+  from the files as they were just before the commit that put the web page
+  in the bundle, carried the same page: `web/` and `install-web.sh` differed
+  only in the build time. That bundle was installed (see below). No
+  full-size bundle has been built from this repository
 - *Full size, Mac target:* twice. First with every language and
   `translategemma:12b`, on macOS 27, from the build script before it had a
   Windows side. Then with every language, 12B, 27B and Docker Desktop, from
@@ -621,6 +653,23 @@ emulation.
   built from `c91c2cd`. That is as reported by the person who installed it:
   `install.sh` ended in `==> Done`. Its log has not been read (see Not yet
   done)
+- *from this repository,* the smoke bundle with the web page in it, on the
+  build Mac beside a full installation, on other ports and in scratch
+  folders. `install.sh` started LibreTranslate with its own page turned off
+  (404 at `/` and `/js/app.js`; `/languages`, `/frontend/settings` and
+  `/translate` answering) and then the web page, which reported both engines
+  ready. Driven through its API, not a browser, the page translated the
+  English .docx with LibreTranslate and with the smoke bundle's stand-in
+  model, and the English .pdf with LibreTranslate; `translate.sh` translated
+  the .docx against the same LibreTranslate. Then: a re-run; a page update
+  installed over it with `install-web.sh`, which left the LibreTranslate
+  container alone; `--no-web`, which brought LibreTranslate's own page back
+  and left the earlier web page running; `--no-docker`; the page's port in
+  use, which stopped the installer before it changed anything; and a bundle
+  with the page's files taken out. Every run had `--no-launch` and
+  `--no-open`, so the Ollama step and the opening of the page did not run.
+  The switch that turns LibreTranslate's page off was also tried on the full
+  image, with the same answers and `/detect` working
 
 **The Windows installer.** Nothing has run on Windows. `install.ps1`'s logic
 was run in PowerShell 7 with stand-ins for Docker, robocopy and the Ollama
@@ -723,7 +772,7 @@ The Windows items can't be done from a Mac.
   GPU pickup and Docker Desktop on Windows still need testing
 - the full build for the Windows target, or for both at once
 - a full-size bundle built from this repository. The one full bundle there is
-  has helpers that call `/spec` (see History)
+  has helpers that call `/spec` and no web page (see History)
 - **a record of the airgapped install.** Three steps ran there for the first
   time and finished: Docker Desktop's installer run by `install.sh` on a Mac
   with no Docker, `docker load` on a machine holding none of the image's
@@ -732,8 +781,9 @@ The Windows items can't be done from a Mac.
   sign-in screen was still up, whether `--user` spared a second password
   prompt, how long the load took and what disk it cost are in that Mac's
   install log, and not known here
-- the web page in Safari, on Windows, or carried and started by the full
-  bundle
+- the web page in Safari or on Windows, and in any browser since the bundle
+  began to carry it: those tests drove its API. `install.sh` opening the page
+  at the end of an install
 - `translategemma:27b` on a 32 GB Mac, and any comparison of it with 12B
   beyond the five test files. The build's self-test runs only the first
   model in the list
@@ -812,6 +862,10 @@ whenever it is opened or given a document and for each LibreTranslate
 translation. On a machine that has them, the page is put right by a page
 update built from this repository, followed once by
 `docker restart libretranslate`; the helper by a bundle built from it.
+
+That full bundle also has no web page in it. A Mac it is installed on gets
+the page from a page update and keeps LibreTranslate's own page beside it
+until a bundle that carries the page is installed there.
 
 The names inside a bundle predate the name Hoshi and have not changed:
 `translation-bundle-*`, `~/translation-tools`, the `libretranslate` and

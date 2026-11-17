@@ -1,11 +1,13 @@
 #!/bin/bash
-# Add the translation web page to a Mac where the offline translation bundle
-# is already installed.
+# Start the translation web page on a Mac where the offline translation bundle
+# is installed. The bundle's install.sh runs this as its last step; it is also
+# run by hand from a page update, the small folder build-web-patch.sh makes.
 #
 # The page runs in a second container made from the LibreTranslate image that
 # is already in Docker, with the files in web/ handed to it from the Mac. So
 # this needs nothing large: no image, no models. Safe to re-run: it replaces
-# the page's files and its container, and never touches a translation.
+# the page's files and its container, and never touches a translation or the
+# LibreTranslate container.
 
 set -euo pipefail
 
@@ -18,6 +20,7 @@ FOLDER=""
 DOCKER_APP="/Applications/Docker.app"
 DO_VERIFY=1
 DO_OPEN=1
+STANDALONE=1
 
 usage() {
   cat <<EOF
@@ -29,6 +32,9 @@ Usage: ./install-web.sh [options]
   --folder DIR     Where the page saves translations (default: PREFIX/translations)
   --skip-verify    Don't check the files' checksums first
   --no-open        Don't open the page in a browser at the end
+  --part-of-install
+                   Leave the closing summary and the opening of the page to
+                   install.sh, which passes this
   -h, --help       Show this help
 EOF
 }
@@ -47,6 +53,7 @@ while [ $# -gt 0 ]; do
     --folder) FOLDER="${2:?}"; shift 2 ;;
     --skip-verify) DO_VERIFY=0; shift ;;
     --no-open) DO_OPEN=0; shift ;;
+    --part-of-install) STANDALONE=0; DO_OPEN=0; shift ;;
     -h|--help) usage; exit 0 ;;
     *) usage >&2; die "unknown option: $1" ;;
   esac
@@ -68,10 +75,15 @@ if [ -z "${TRANSLATION_INSTALL_LOG:-}" ]; then
 fi
 
 BUILD="$(cat "$HERE/web/BUILD" 2>/dev/null || echo "not recorded")"
-say "Translation web page installer"
-note "started $(date -u +%Y-%m-%dT%H:%M:%SZ), options: ${ORIG_ARGS[*]:-none}"
-note "page files: $BUILD"
-note "log: $TRANSLATION_INSTALL_LOG"
+if [ "$STANDALONE" = 1 ]; then
+  say "Translation web page installer"
+  note "started $(date -u +%Y-%m-%dT%H:%M:%SZ), options: ${ORIG_ARGS[*]:-none}"
+  note "page files: $BUILD"
+  note "log: $TRANSLATION_INSTALL_LOG"
+else
+  say "Installing the translation page"
+  note "page files: $BUILD"
+fi
 
 IMAGE="$(cfg LT_IMAGE)"
 IMAGE_ID="$(cfg LT_IMAGE_ID_INSTALLED)"
@@ -172,6 +184,7 @@ for _ in $(seq 1 30); do
   sleep 1
 done
 [ -n "$CONFIG" ] || { docker logs "$NAME" 2>&1 | tail -30 >&2; die "the page did not start; log above"; }
+[ "$STANDALONE" = 1 ] || exit 0
 
 engine() { # $1 = gemma or libre: whether the page can reach it
   if [ "$(printf '%s' "$CONFIG" | plutil -extract "$1.ok" raw -o - - 2>/dev/null)" = "true" ]; then
