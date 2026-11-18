@@ -164,6 +164,18 @@ records the exact versions, digests and checksums of what that bundle holds.
    came from, a link to its contributors and what was changed. These files
    are in Hoshi's repository too, under this licence and not Hoshi's.
 
+8. Reference evaluation data (repository only)
+   The frozen FLORES-200 devtest subset in evaluation/corpus.json, released
+   by the NLLB team at Meta/Facebook in 2022, and translations of its excerpts.
+   Creative Commons Attribution-ShareAlike 4.0 International.
+   https://github.com/facebookresearch/flores/tree/main/flores200
+   https://creativecommons.org/licenses/by-sa/4.0/
+
+   evaluation/README.md records the source archive, selection method and
+   changes; corpus.json records the original article URLs and row numbers.
+   The publisher's licence text is in evaluation/LICENSE_CC-BY-SA.txt.
+   These data are not part of the offline installation bundle.
+
 
 ------------------------------------------------------------------------
 What Hoshi's own code runs on
@@ -195,3 +207,8 @@ textutil, which is part of macOS.
 
 The list of TranslateGemma's language codes in languages.tsv was taken from
 https://ollama.com/library/translategemma on 16 November 2026.
+
+The optional reference evaluation uses SacreBLEU, by Matt Post and
+contributors, under the Apache License 2.0:
+https://github.com/mjpost/sacrebleu
+It is a development/evaluation dependency, not an installer dependency.

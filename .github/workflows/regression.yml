@@ -28,7 +28,9 @@ jobs:
         with:
           python-version: '3.12'
           cache: pip
-          cache-dependency-path: tests/requirements.txt
+          cache-dependency-path: |
+            tests/requirements.txt
+            evaluation/requirements.txt
       - run: python -m pip install -r tests/requirements.txt
       - name: Native installer and output integrity regressions
         run: python -m unittest discover -s tests -v
@@ -63,7 +65,9 @@ jobs:
         with:
           python-version: '3.12'
           cache: pip
-          cache-dependency-path: tests/requirements.txt
+          cache-dependency-path: |
+            tests/requirements.txt
+            evaluation/requirements.txt
       - run: python -m pip install -r tests/requirements.txt
       - name: Native installer and output integrity regressions
         shell: pwsh

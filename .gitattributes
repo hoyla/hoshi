@@ -1,0 +1,10 @@
+# Evaluation identities hash file bytes; keep them stable on Windows checkouts.
+evaluation/** text eol=lf
+# Preserve the CSV writer's CRLF records and UTF-8 BOM exactly.
+evaluation/**/*.csv -text whitespace=cr-at-eol
+# Keep generated result payloads collapsible while leaving the report readable.
+evaluation/results/libre.json linguist-generated=true
+evaluation/results/gemma.json linguist-generated=true
+evaluation/results/report/scores.json linguist-generated=true
+evaluation/results/report/review.csv linguist-generated=true
+evaluation/results/report/review-key.json linguist-generated=true

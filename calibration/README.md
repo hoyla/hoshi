@@ -5,6 +5,11 @@ paragraphs that came out much shorter or longer than expected (see
 [the main README](../README.md#the-dropped-text-check)). This folder is the
 evidence for its thresholds and the means to measure them again.
 
+The separate [reference evaluation](../evaluation/) uses frozen human
+translations from FLORES-200 that were not used to choose these thresholds.
+Its results do not replace the calibration figures below, and the thresholds
+are not retuned against that evaluation subset.
+
 ## What is here
 
 | | |
