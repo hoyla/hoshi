@@ -109,6 +109,6 @@ public sealed class HoshiTestRequests : IWebRequestCreate {
 }
 '@
 $null = [System.Net.WebRequest]::RegisterPrefix('http://127.0.0.1', (New-Object HoshiTestRequests))
-$installerArguments = @(Get-Content -Raw -LiteralPath $ArgumentsFile | ConvertFrom-Json)
+[string[]]$installerArguments = ConvertFrom-Json -InputObject ([System.IO.File]::ReadAllText($ArgumentsFile))
 & $Installer @installerArguments
 exit $LASTEXITCODE

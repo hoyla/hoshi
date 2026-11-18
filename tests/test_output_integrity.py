@@ -108,6 +108,9 @@ class HelperIntegrityMixin:
         self.environment = dict(os.environ, OLLAMA_HOST=f"127.0.0.1:{self.server.server_port}",
                                 LT_URL=f"http://127.0.0.1:{self.server.server_port}",
                                 PATH=str(binary_folder) + os.pathsep + os.environ["PATH"])
+        for name in tuple(self.environment):
+            if name.upper() == "PSMODULEPATH":
+                del self.environment[name]
 
     def command(self, *options, engine="gemma"):
         return self.runtime + [str(ROOT / "bundle" / self.helper), "--engine", engine,
@@ -231,7 +234,8 @@ class HelperIntegrityMixin:
         self.run_helper()
         side = json.loads(self.sides()[0].read_text())
         self.assertEqual(side["source_sha256"], sha(original))
-        self.assertEqual(side["input_sha256"], sha(original))
+        normalized = original.decode("utf-8").lstrip("\ufeff").replace("\r", "").encode("utf-8")
+        self.assertEqual(side["input_sha256"], sha(normalized))
         self.assertIn(original.decode().strip(), self.server.received[0]["prompt"])
 
     def test_libre_checks_encoding_and_output_integrity(self):

@@ -25,6 +25,10 @@ to Windows PowerShell on Windows. A platform that is not available is reported
 as skipped. The CI workflow explicitly selects each Windows runtime; its macOS
 job also exercises the portable PowerShell helper.
 
+Child processes start without an inherited `PSModulePath`, so each selected
+runtime constructs its native module search path. This avoids the documented
+[PowerShell 7 to Python to Windows PowerShell module-path inheritance issue](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_psmodulepath#starting-windows-powershell-from-powershell-7).
+
 Each installer test constructs a fresh bundle and destination under a temporary
 directory, including paths containing spaces. Checksums and file-copy assertions
 use the fixture's real bytes. The production installer scripts are copied

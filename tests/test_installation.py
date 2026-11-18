@@ -46,6 +46,11 @@ class BundleFixture:
         self.environment = dict(os.environ, HOSHI_INSTALL_TEST_ROOT=str(self.root),
                                 OLLAMA_MODELS=str(self.models), OLLAMA_HOST="127.0.0.1:11434")
         self.environment.pop("TRANSLATION_INSTALL_LOG", None)
+        # Python launched by pwsh inherits its Core module paths. Let each
+        # child PowerShell runtime construct its own native module search path.
+        for name in tuple(self.environment):
+            if name.upper() == "PSMODULEPATH":
+                del self.environment[name]
         for name in ("install.sh", "install.ps1", "install.cmd", "install-web.sh", "languages.tsv"):
             data = (ROOT / "bundle" / name).read_bytes()
             if name.endswith(".cmd"):
