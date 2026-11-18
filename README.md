@@ -505,19 +505,28 @@ changed.
 
 ## Smoke test
 
-The output-integrity regression suite uses a local stand-in engine and no
-models:
+The regression suite uses temporary bundles and stand-in engines, with no
+model downloads or real application installs:
 
 ```bash
 python3 -m unittest discover -s tests -v
 ```
 
-It tests concurrency, reuse, changed encodings and settings, edited or missing
-outputs, source snapshots and failed writes. The Mac helper tests need macOS;
-the Windows helper tests use `pwsh`, Windows PowerShell on Windows, or the
-runtime named by `HOSHI_PWSH`. Web tests need Flask, requests and lxml (already
-in the LibreTranslate image). Unavailable runtimes are reported as skipped.
-PowerShell 7 on a Mac does not establish Windows PowerShell 5.1 compatibility.
+It tests output integrity and the Mac, Windows and web installers: successful
+installs, reruns, checksum failures, container and port conflicts, image-load
+failures, file copies, smoke tests and launch failures. The installer scripts
+run unchanged; Docker, application setup and service transports are stand-ins.
+The native Windows tests also exercise `install.cmd` and ARM image selection.
+
+[The regression workflow](.github/workflows/regression.yml) runs on macOS and
+Windows, including Windows PowerShell 5.1 and PowerShell 7. The Mac tests need
+macOS; the Windows installer tests need Windows. `HOSHI_PWSH` selects the
+PowerShell runtime. Web tests need Flask, requests and lxml (already in the
+LibreTranslate image); `python3 -m pip install -r tests/requirements.txt` adds
+the test dependencies on a development machine. Unavailable platforms are
+reported as skipped. [tests/README.md](tests/README.md) explains the boundaries
+of these tests: they do not validate Docker Desktop's first launch, a real
+Ollama setup, GPU support, or a full bundle on a clean disconnected machine.
 
 A small build exercises every step in a few minutes, with about 1.4 GB of
 downloads for the Mac target (0.6 GB of it Docker Desktop) and another 2 GB
@@ -542,6 +551,9 @@ docker load -i docker/libretranslate-offline-v1.9.6-arm64.tar
 ```
 
 ## Status (2026-11-17)
+
+This is the manual testing record from before the automated regression workflow
+described above was added.
 
 What has been tested and what has not. Except where it says "from this
 repository", the tests were run on the code as it stood in the private
@@ -686,13 +698,11 @@ words each:
 
 The Windows items can't be done from a Mac.
 
-- **anything on a real Windows PC.** The `.ps1` scripts have never run under
-  Windows PowerShell 5.1, which is what the targets have. They were written to
-  its rules and checked by parser and by PSScriptAnalyzer's 5.1 compatibility
-  rules, but that is not the same as running them. `install.cmd`, the silent
-  Ollama install, the Start-menu launch, GPU pickup and Docker Desktop on
-  Windows are all unexercised. The dropped-text check in `translate.ps1` has
-  run in PowerShell 7 only
+- **a real installation on a Windows PC with Docker Desktop and Ollama.**
+  The regression workflow now exercises the installers and helpers on Windows
+  PowerShell 5.1, including `install.cmd`, with stand-ins for external services
+  and application setup. A real silent Ollama install, the Start-menu launch,
+  GPU pickup and Docker Desktop on Windows still need testing
 - the full build for the Windows target, or for both at once
 - a full-size bundle built from this repository. The one full bundle there is
   has helpers that call `/spec` (see History)

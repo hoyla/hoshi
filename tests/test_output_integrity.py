@@ -257,7 +257,7 @@ class MacHelperTests(HelperIntegrityMixin, unittest.TestCase):
 
 @unittest.skipUnless(PWSH, "set HOSHI_PWSH or install PowerShell to test the Windows helper")
 class PowerShellHelperTests(HelperIntegrityMixin, unittest.TestCase):
-    runtime = [PWSH, "-NoProfile", "-File"]
+    runtime = [PWSH, "-NoProfile", "-ExecutionPolicy", "Bypass", "-File"]
     helper = "translate.ps1"
 
 

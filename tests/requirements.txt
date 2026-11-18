@@ -1,0 +1,4 @@
+# Test dependencies only; the offline installers do not use pip.
+Flask==3.1.0
+requests==2.32.3
+lxml==5.3.2
