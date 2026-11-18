@@ -20,7 +20,8 @@
 
 set -euo pipefail
 
-VERSION="2"
+VERSION="3"
+TOOL="airgapped-translation translate.sh v$VERSION"
 HERE="$(cd "$(dirname "$0")" && pwd -P)"
 LANGFILE="$HERE/languages.tsv"
 ENVFILE="$HERE/bundle.env"
@@ -151,7 +152,14 @@ case "$ENGINE" in ""|gemma|libre) ;; *) die "--engine must be gemma or libre" ;;
 if [ "$HAVE_TEXT" = 0 ] && [ "${#FILES[@]}" -eq 0 ]; then usage >&2; die "nothing to translate"; fi
 
 TMP="$(mktemp -d)"
-trap 'rm -rf "$TMP"' EXIT
+OUTPUT_LOCK=""; OWN_OUTPUT=""; OWN_SIDECAR=""
+cleanup() {
+  [ -z "$OWN_OUTPUT" ] || rm -f "$OWN_OUTPUT"
+  [ -z "$OWN_SIDECAR" ] || rm -f "$OWN_SIDECAR"
+  [ -z "$OUTPUT_LOCK" ] || rm -f "$OUTPUT_LOCK"
+  rm -rf "$TMP"
+}
+trap cleanup EXIT
 
 # ---------------------------------------------------------- dropped-text check
 cat > "$TMP/check.pl" <<'PERL'
@@ -637,11 +645,50 @@ fi
 is_text_ext() { case "$1" in txt|text|md|markdown) return 0 ;; *) return 1 ;; esac; }
 
 already_done() { # $1 = sidecar; true if it records this exact source, engine and language pair
-  [ -f "$1" ] \
-    && grep -qF "\"source_sha256\": \"$SRC_SHA\"" "$1" \
-    && grep -qF "\"engine_digest\": \"$(json_str "$ENGINE_DIGEST")\"" "$1" \
-    && grep -qF "\"source_lang\": \"$(json_str "$SRC_LANG")\"" "$1" \
-    && grep -qF "\"target_lang\": \"$(json_str "$TO")\"" "$1"
+  local output="${1%.provenance.json}" key expected actual
+  [ -f "$1" ] && [ -f "$output" ] && ! path_exists "$output.lock" || return 1
+  [ "$ENGINE_DIGEST" != unknown ] || return 1
+  for key in tool source_sha256 input_sha256 source_encoding engine engine_digest engine_options source_lang target_lang output_file; do
+    case "$key" in
+      tool) expected="$TOOL" ;; source_sha256) expected="$SRC_SHA" ;;
+      input_sha256) expected="$INPUT_SHA" ;; source_encoding) expected="$SRC_ENCODING" ;;
+      engine) expected="$FILE_ENGINE" ;; engine_digest) expected="$ENGINE_DIGEST" ;;
+      engine_options) expected="$ENGINE_OPTIONS" ;; source_lang) expected="$SRC_LANG" ;;
+      target_lang) expected="$TO" ;; output_file) expected="$(basename "$output")" ;;
+    esac
+    actual="$(plutil -extract "$key" raw -o - "$1" 2>/dev/null)" || return 1
+    [ "$actual" = "$expected" ] || return 1
+  done
+  expected="$(plutil -extract output_sha256 raw -o - "$1" 2>/dev/null)" || return 1
+  [ -n "$expected" ] && [ "$(shasum -a 256 "$output" | awk '{print $1}')" = "$expected" ]
+}
+
+path_exists() { [ -e "$1" ] || [ -L "$1" ]; }
+
+reserve_output() { # $1 = un-timestamped output; sets OUT and OUTPUT_LOCK
+  local base="$1" stamp serial=0
+  OUT="$base"
+  stamp="$(date -u +%Y%m%dT%H%M%SZ)"
+  while :; do
+    if (set -C; : > "$OUT.lock") 2>/dev/null; then
+      if ! path_exists "$OUT" && ! path_exists "$OUT.provenance.json"; then
+        OUTPUT_LOCK="$OUT.lock"
+        return
+      fi
+      rm -f "$OUT.lock"
+    elif ! path_exists "$OUT.lock"; then
+      die "couldn't reserve an output in $DEST_DIR"
+    fi
+    serial=$((serial + 1))
+    OUT="$DEST_DIR/$STEM.$TO.$FILE_ENGINE.$stamp$([ "$serial" -le 1 ] || printf -- '-%s' "$serial")${EXT:+.$EXT}"
+  done
+}
+
+write_new() { # $1 = staged file, $2 = destination; never truncate an existing file
+  ( set -C
+    exec 4> "$2" || exit 1
+    if ! cat "$1" >&4; then rm -f "$2"; exit 1; fi
+  )
 }
 
 FROM_ARG="$FROM"
@@ -667,19 +714,22 @@ for FILE in "${FILES[@]}"; do
   fi
 
   info "$BASE  [$FILE_ENGINE]"
-  SRC_SHA="$(shasum -a 256 "$FILE" | awk '{print $1}')"
+  # Hash and translate the same snapshot even if the source is edited mid-run.
+  SNAPSHOT="$TMP/source.${EXT_LC:-txt}"
+  cp "$FILE" "$SNAPSHOT"
+  SRC_SHA="$(shasum -a 256 "$SNAPSHOT" | awk '{print $1}')"
 
   # Plain text has to be UTF-8 for either engine. Convert a copy, never the original.
-  INPUT="$FILE"
+  INPUT="$SNAPSHOT"
   SRC_ENCODING="n/a"
   if [ "$IS_TEXT" = 1 ]; then
     if [ -n "$ENCODING" ]; then
-      to_utf8 "$ENCODING" "$FILE" > "$TMP/input.${EXT_LC:-txt}" \
+      to_utf8 "$ENCODING" "$SNAPSHOT" > "$TMP/input.${EXT_LC:-txt}" \
         || die "$BASE: couldn't convert from $ENCODING (unknown encoding name, or the file isn't in it)"
       INPUT="$TMP/input.${EXT_LC:-txt}"
       SRC_ENCODING="$ENCODING"
     else
-      is_utf8 "$FILE" \
+      is_utf8 "$SNAPSHOT" \
         || die "$BASE isn't valid UTF-8. Pass --encoding, e.g. CP1251 (Russian), CP1255 (Hebrew), CP1256 (Arabic), GBK or Big5 (Chinese), or UTF-16."
       SRC_ENCODING="UTF-8"
     fi
@@ -688,6 +738,7 @@ for FILE in "${FILES[@]}"; do
     clean_text < "$INPUT" > "$TMP/clean.${EXT_LC:-txt}"
     INPUT="$TMP/clean.${EXT_LC:-txt}"
   fi
+  INPUT_SHA="$(shasum -a 256 "$INPUT" | awk '{print $1}')"
 
   if [ "$FILE_ENGINE" = "gemma" ]; then
     [ -n "$FROM" ] || detect_lang "$INPUT"
@@ -703,30 +754,29 @@ for FILE in "${FILES[@]}"; do
 
   DEST_DIR="${OUT_DIR:-$(dirname "$SRC_ABS")}"
   mkdir -p "$DEST_DIR"
+  DEST_DIR="$(cd "$DEST_DIR" && pwd -P)"
   OUT="$DEST_DIR/$STEM.$TO.$FILE_ENGINE${EXT:+.$EXT}"
-  if [ "$FORCE" = 0 ] && already_done "$OUT.provenance.json"; then
-    info "    already translated with this engine, source unchanged: $OUT"
-    continue
-  fi
-  if [ -e "$OUT" ] || [ -e "$OUT.provenance.json" ]; then
-    STAMP="$(date -u +%Y%m%dT%H%M%SZ)"; SERIAL=1
-    OUT="$DEST_DIR/$STEM.$TO.$FILE_ENGINE.$STAMP${EXT:+.$EXT}"
-    # two runs inside the same second must not share a name either
-    while [ -e "$OUT" ] || [ -e "$OUT.provenance.json" ]; do
-      SERIAL=$((SERIAL + 1))
-      OUT="$DEST_DIR/$STEM.$TO.$FILE_ENGINE.$STAMP-$SERIAL${EXT:+.$EXT}"
+  REUSED=0
+  if [ "$FORCE" = 0 ]; then
+    for SIDECAR in "$DEST_DIR/$STEM.$TO.$FILE_ENGINE"*"${EXT:+.$EXT}.provenance.json"; do
+      if already_done "$SIDECAR"; then
+        info "    already translated with this engine, source unchanged: ${SIDECAR%.provenance.json}"
+        REUSED=1; break
+      fi
     done
   fi
+  [ "$REUSED" = 0 ] || continue
+  reserve_output "$OUT"
 
   WORK_OUT="$TMP/result"
   if [ "$FILE_ENGINE" = "gemma" ]; then
     gemma_translate "$INPUT" "$WORK_OUT"
   else
-    if [ "$INPUT" = "$FILE" ]; then libre_translate_file "$FILE" "$WORK_OUT"
-    else libre_translate_file "$INPUT" "$WORK_OUT"; fi
+    libre_translate_file "$INPUT" "$WORK_OUT"
   fi
   [ -s "$WORK_OUT" ] || die "$BASE: the translation came back empty"
-  mv "$WORK_OUT" "$OUT"
+  write_new "$WORK_OUT" "$OUT" || die "couldn't write a new translation: $OUT"
+  OWN_OUTPUT="$OUT"
 
   CHECK_STATUS="not run"
   if [ "$FILE_ENGINE" = "gemma" ]; then
@@ -745,10 +795,11 @@ for FILE in "${FILES[@]}"; do
 
   {
     printf '{\n'
-    printf '  "tool": "airgapped-translation translate.sh v%s",\n' "$VERSION"
+    printf '  "tool": "%s",\n' "$TOOL"
     printf '  "translated_at_utc": "%s",\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
     printf '  "source_file": "%s",\n' "$(json_str "$SRC_ABS")"
     printf '  "source_sha256": "%s",\n' "$SRC_SHA"
+    printf '  "input_sha256": "%s",\n' "$INPUT_SHA"
     printf '  "source_encoding": "%s",\n' "$(json_str "$SRC_ENCODING")"
     printf '  "source_lang": "%s",\n' "$(json_str "$SRC_LANG")"
     printf '  "source_lang_detected": %s,\n' "$([ "$DETECTED" = 1 ] && echo true || echo false)"
@@ -764,7 +815,11 @@ for FILE in "${FILES[@]}"; do
     printf '  "dropped_text_check": "%s",\n' "$(json_str "$CHECK_STATUS")"
     printf '  "warnings": [%s]\n' "$WARNINGS"
     printf '}\n'
-  } > "$OUT.provenance.json"
+  } > "$TMP/provenance.json"
+  write_new "$TMP/provenance.json" "$OUT.provenance.json" || die "couldn't write a new provenance file: $OUT.provenance.json"
+  OWN_SIDECAR="$OUT.provenance.json"
+  rm -f "$OUTPUT_LOCK"
+  OUTPUT_LOCK=""; OWN_OUTPUT=""; OWN_SIDECAR=""
   info "    wrote $OUT"
   [ -z "$WARNINGS" ] || info "    warnings were recorded in $(basename "$OUT").provenance.json"
 done

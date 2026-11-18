@@ -201,14 +201,24 @@ Tested in headless Chrome only, not Safari.
 `translate.sh` (Mac) and `translate.ps1` (Windows, run through `translate.cmd`)
 take the same options and behave the same way:
 
-- The source file is never modified. Non-UTF-8 text is converted in a temporary
-  copy.
+- The source file is never modified. The helpers translate a temporary snapshot,
+  so an edit to the original during a run cannot change the recorded input.
+  Non-UTF-8 text is converted in that copy.
 - Every translation gets a `.provenance.json` sidecar: SHA-256 of the source,
   engine, exact model digest, languages (and whether the source language was
   detected), options, time, output hash, warnings, and which helper wrote it.
-- Re-running on an unchanged source with the same model is a no-op. A changed
-  source, a changed model or `--force` writes a new timestamped file. Nothing
-  is overwritten.
+  `input_sha256` records the bytes after text decoding and normalization
+  (or the document bytes, for LibreTranslate).
+- A result is reused only when the source, processed input, encoding, engine,
+  model digest, languages, options and helper version match, and the saved
+  translation still matches its recorded hash. The web page also verifies its
+  saved source text. Changed or missing results are translated again into a new
+  file; existing files are preserved. Older sidecars without these fields are
+  kept but not reused. `--force` always writes a new result.
+- Concurrent runs reserve separate output names with exclusive `.lock` files.
+  The provenance is written last; a result with a lock cannot be reused.
+  Normal failures clean up incomplete files. An abrupt shutdown may leave a
+  lock or incomplete result, which later runs leave alone and do not reuse.
 - TranslateGemma runs at temperature 0 so that the same input gives the same
   output. The 12b model did on repeated runs. The 27b model did not: two runs
   on the Arabic test file differed in three phrases (see Status).
@@ -494,6 +504,20 @@ changed.
   read (see Status). The installers explain the limit if the load fails.
 
 ## Smoke test
+
+The output-integrity regression suite uses a local stand-in engine and no
+models:
+
+```bash
+python3 -m unittest discover -s tests -v
+```
+
+It tests concurrency, reuse, changed encodings and settings, edited or missing
+outputs, source snapshots and failed writes. The Mac helper tests need macOS;
+the Windows helper tests use `pwsh`, Windows PowerShell on Windows, or the
+runtime named by `HOSHI_PWSH`. Web tests need Flask, requests and lxml (already
+in the LibreTranslate image). Unavailable runtimes are reported as skipped.
+PowerShell 7 on a Mac does not establish Windows PowerShell 5.1 compatibility.
 
 A small build exercises every step in a few minutes, with about 1.4 GB of
 downloads for the Mac target (0.6 GB of it Docker Desktop) and another 2 GB

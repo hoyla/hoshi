@@ -212,10 +212,17 @@ What you get
                                               original, engine, exact model,
                                               languages, time, any warnings
 
-    Running the same command again does nothing if the original and the
-    engine are unchanged. If either changed, or you pass --force, a new
-    timestamped translation is written beside the old one. Nothing is
-    overwritten.
+    Running the same command again reuses an intact result when the original,
+    decoded input, encoding, engine, model, languages, settings and helper
+    version match. Its saved hash is checked first. A changed or missing
+    translation is made again under a new name; your edits are preserved.
+    Older results without the new integrity fields are kept but not reused.
+    --force always makes a new result. Nothing is overwritten.
+
+    A .lock file reserves the name while a translation is being made. Two
+    runs at once use separate names. If the computer shuts down abruptly,
+    a lock or incomplete result may be left behind; later runs leave it
+    alone and make a new result instead.
 
 In the Ollama window
     You can chat with the model directly, but TranslateGemma expects a fixed
