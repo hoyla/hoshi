@@ -32,6 +32,7 @@ function docker {
     if (-not [System.IO.File]::Exists($args[-1])) { throw 'test image missing' }
     'Loaded image'
   } elseif ($args[0] -eq 'image' -and $args[1] -eq 'inspect') {
+    if (Test-Setting 'image_missing') { $global:LASTEXITCODE = 1; return }
     'sha256:test-loaded-image'
   } elseif ($args[0] -eq 'container' -and $args[1] -eq 'inspect') {
     if (-not $state.container -and -not (Test-Setting 'foreign_container')) { $global:LASTEXITCODE = 1; return }

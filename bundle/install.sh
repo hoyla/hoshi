@@ -207,10 +207,11 @@ if [ "$DO_DOCKER" = 1 ]; then
     || die "docker load failed. If the message above says 'no space left on device', Docker's own disk is full (it has a size limit separate from the Mac's). Raise the limit in Docker Desktop under Settings > Resources, or remove an image you no longer need ('docker image ls', 'docker image rm NAME'), then re-run. Take care: nothing removed can be downloaded again on this Mac."
   # Sidecars record the image by the ID Docker gives it on this Mac, which can
   # differ from the manifest's depending on how each Docker stores images.
-  LOADED_ID="$(docker image inspect --format '{{.Id}}' "$IMAGE")"
+  LOADED_ID="$(docker image inspect --format '{{.Id}}' "$IMAGE")" \
+    && [ -n "$LOADED_ID" ] || die "couldn't read the loaded LibreTranslate image ID; re-run the installer"
   note "loaded in $((SECONDS - LOAD_STARTED)) seconds. Docker's disk after:"
   docker system df 2>&1 | sed 's/^/      /' || true
-  note "free in Docker's disk: $(docker run --rm --network none --entrypoint df "$IMAGE" -m / 2>/dev/null \
+  note "free in Docker's disk: $(docker run --rm --pull never --network none --entrypoint df "$LOADED_ID" -m / 2>/dev/null \
     | awk 'END { if (NR) printf "%d GB", $4 / 1024; else print "unknown" }')"
   [ "$LOADED_ID" = "$IMAGE_ID" ] \
     || note "Docker here knows the image as $LOADED_ID; recorded in bundle.env beside the manifest's ID"
@@ -228,7 +229,7 @@ if [ "$DO_DOCKER" = 1 ]; then
 
   say "Starting LibreTranslate on $LT_URL"
   docker run -d --name "$NAME" --label airgapped-translation=1 \
-    --restart unless-stopped -p "127.0.0.1:$PORT:5000" "$IMAGE" >/dev/null
+    --pull never --restart unless-stopped -p "127.0.0.1:$PORT:5000" "$LOADED_ID" >/dev/null
 
   UP=0
   for _ in $(seq 1 150); do

@@ -193,6 +193,12 @@ there is no Windows installer for it.
 - **Reachable from this computer only.** The port is published on 127.0.0.1,
   and the page refuses requests whose Host is not local or whose Origin is
   another site.
+- **The installed image ID selects the page's runtime.** A later build can
+  move the image tag without changing the running LibreTranslate service.
+  The web installer uses `LT_IMAGE_ID_INSTALLED` and refuses a missing image
+  or a service container using a different one before replacing the page.
+  Re-run the web installer after updating LibreTranslate with a new bundle
+  so the page's runtime and recorded image ID stay in sync with the service.
 
 Tested in headless Chrome only, not Safari.
 
@@ -249,7 +255,10 @@ The image digest in a sidecar maps to exact language-model versions through the
 bundle's `MANIFEST.txt`. Docker can give a loaded image a different ID from the
 one it had on the build Mac (it depends on which image store each Docker uses),
 so the installers record the ID as loaded, as `LT_IMAGE_ID_INSTALLED` in the
-installed `bundle.env`, next to the manifest's.
+installed `bundle.env`, next to the manifest's. Both bundle installers start
+LibreTranslate from that ID, and the web installer starts the page from the
+same ID, with Docker pulls disabled. A changed tag cannot select another
+image between inspection and startup.
 
 ## The dropped-text check
 
@@ -544,15 +553,13 @@ downloads for the Mac target (0.6 GB of it Docker Desktop) and another 2 GB
 ./build-bundle.sh --langs en,fr --model gemma3:270m --out /tmp/smoke-bundle
 ```
 
-Think twice before running it on a Mac where a bundle is installed. Every
-build tags its image `libretranslate-offline:VERSION-ARCH` whatever languages
-are in it, and that is the tag the installed service was started from. A
-smoke build moves the tag to its two-language image. The running containers
-carry on with the full image, but `install-web.sh` run afterwards would start
-the page from the small one while recording the full one's ID in its
-sidecars. It happened once on the build Mac, under Docker's containerd store:
-the full image also dropped out of `docker image ls`. Loading it again from
-the full bundle put it back under the same ID:
+Every build tags its image `libretranslate-offline:VERSION-ARCH` whatever languages
+are in it. A smoke build moves the tag to its two-language image. Running
+containers keep their full image, and the current installers select images
+by ID. Older web installers selected the moved tag while recording the full
+image's ID; use a new web patch before reinstalling the page on such a Mac.
+If the installed image is no longer available by ID, load it from the full
+bundle or re-run that bundle's installer:
 
 ```bash
 docker load -i docker/libretranslate-offline-v1.9.6-arm64.tar

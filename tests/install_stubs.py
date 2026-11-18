@@ -52,10 +52,16 @@ elif command == "docker":
             fail("missing image")
         print("Loaded image")
     elif args[:2] == ["image", "inspect"]:
-        if settings.get("image_missing"):
+        if settings.get("image_missing") or (settings.get("tag_missing") and not args[-1].startswith("sha256:")):
             fail("no such image")
-        print("sha256:test-loaded-image")
+        print("sha256:moved-tag-image" if settings.get("tag_moved") and not args[-1].startswith("sha256:")
+              else "sha256:test-loaded-image")
     elif args[:2] == ["container", "inspect"]:
+        if args[-1] == "installed-libre":
+            if settings.get("libre_container_missing"):
+                fail("no such container")
+            print("sha256:another-service-image" if settings.get("libre_image_changed") else "sha256:test-loaded-image")
+            sys.exit(0)
         if not state.get("container") and not settings.get("foreign_container"):
             fail("no such container")
         print("0" if settings.get("foreign_container") else "1")
