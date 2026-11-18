@@ -1,0 +1,4 @@
+# Evaluation identities hash file bytes; keep them stable on Windows checkouts.
+evaluation/** text eol=lf
+# Preserve the CSV writer's CRLF records and UTF-8 BOM exactly.
+evaluation/**/*.csv -text

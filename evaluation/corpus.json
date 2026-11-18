@@ -1,0 +1,356 @@
+{
+  "protocol": 1,
+  "dataset": "FLORES-200",
+  "split": "devtest",
+  "source_url": "https://dl.fbaipublicfiles.com/nllb/flores200_dataset.tar.gz",
+  "archive_sha256": "b8b0b76783024b85797e5cc75064eb83fc5288b41e9654dabc7be6ae944011f6",
+  "license": "CC-BY-SA-4.0",
+  "seed": 20261118,
+  "articles_per_domain": 8,
+  "languages": {
+    "en": "eng_Latn",
+    "fr": "fra_Latn",
+    "ru": "rus_Cyrl",
+    "zh": "zho_Hans",
+    "he": "heb_Hebr",
+    "ar": "arb_Arab"
+  },
+  "cases": [
+    {
+      "id": "flores-devtest-0057",
+      "row": 57,
+      "url": "https://en.wikinews.org/wiki/Argentina%27s_first_lady_launches_presidential_bid",
+      "domain": "wikinews",
+      "texts": {
+        "en": "Mrs. Kirchner announced her intention to run for president at the Argentine Theatre, the same location she used to start her 2005 campaign for the Senate as member of the Buenos Aires province delegation.",
+        "fr": "Mme Kirchner a annoncé son intention de se présenter à la présidence au Théâtre argentin, le même endroit où elle a commencé sa campagne 2005 pour le Sénat en tant que membre de la délégation de la province de Buenos Aires.",
+        "ru": "Г-жа Киршнер объявила о своём намерении баллотироваться на пост президента в Аргентинском театре, в том же месте, где она начала свою предвыборную кампанию в Сенат в 2005 году в качестве члена делегации провинции Буэнос-Айрес.",
+        "zh": "基什内尔女士在阿根廷大剧院宣布她有意参加总统竞选，2005 年也是在这里，她作为布宜诺斯艾利斯省代表开始竞选参议员。",
+        "he": "הגברת קירשנר הודיעה על כוונתה לרוץ לנשיאות בתאטרון הארגנטינאי, אותו מקום בו היא החלה את הקמפיין לסנאט ב־2005 כצירה של פרובינציית בואנוס איירס.",
+        "ar": "أعلنت السيدة كيرشنر عزمها الترشح للرئاسة في المسرح الأرجنتيني، وهو نفس الموقع الذي استخدمته لبدأ حملتها الانتخابية عام ٢٠٠٥ لمجلس الشيوخ بصفتها عضواً في وفد مقاطعة بوينس آيرس."
+      }
+    },
+    {
+      "id": "flores-devtest-0058",
+      "row": 58,
+      "url": "https://en.wikinews.org/wiki/DeLay_declares_%27victory%27_in_war_on_U.S._budget_fat",
+      "domain": "wikinews",
+      "texts": {
+        "en": "The debate was sparked by controversy over spending on relief and reconstruction in the wake Hurricane Katrina; which some fiscal conservatives have humorously labeled \"Bush's New Orleans Deal.\"",
+        "fr": "Le débat a été déclenché par la controverse sur les dépenses liées aux secours et à la reconstruction à la suite de l'ouragan Katrina ; ce que certains conservateurs en matière budgétaire ont appelé avec humour « l'accord Bush pour la Nouvelle-Orléans ».",
+        "ru": "Причиной дебатов стали разногласия относительно затрат на оказание материальной поддержки и восстановление зданий после урагана Катрина, который некоторые фискальные консерваторы в шутку назвали \"новоорлеанской сделкой Буша\".",
+        "zh": "这场辩论是因为对卡特里娜飓风后的救济和重建支出有争议而开始的；一些财政保守派幽默地将其称为“布什的新（奥尔良）政”。",
+        "he": "\"הוויכוח ניצת כתוצאה ממחלוקת סביב ההוצאות על רווחה ושיקום בעקבות ההוריקן קטרינה, שחלק מהשמרנים הפיסקלים כינו בהומור הניו אורלינס דיל של בוש.\"",
+        "ar": "أثير النقاش بسبب الجدل حول الإنفاق على الإغاثة وإعادة الإعمار في أعقاب إعصار كاترينا؛ والذي وصفه بعض المحافظين الماليين بطريقة فكاهية بأنه \"صفقة نيو أورليانز الجديدة لبوش\"."
+      }
+    },
+    {
+      "id": "flores-devtest-0077",
+      "row": 77,
+      "url": "https://en.wikinews.org/wiki/8.0_magnitude_earthquake_occurs_near_Tonga",
+      "domain": "wikinews",
+      "texts": {
+        "en": "No major damage or injuries have been reported in Tonga, but power was temporarily lost, which reportedly prevented Tongan authorities from receiving the tsunami warning issued by the PTWC.",
+        "fr": "Aucun dommage ou blessure grave n’a été signalé à Tonga, mais l’électricité a été temporairement coupée, ce qui aurait empêché les autorités tonganes de recevoir l’alerte au tsunami émise par le centre d’alerte des tsunamis dans le Pacifique.",
+        "ru": "Из Тонга не поступило сообщений о серьезных разрушениях или о пострадавших, но произошло временное отключение электроснабжения, что, по имеющимся данным, не позволило властям Тонга получить предупреждение о цунами, посланное Тихоокеанским центром предупреждения о цунами (PTWC).",
+        "zh": "汤加 (Tonga) 没有重大损失或人员伤亡报告，但电力暂时中断。据报道，停电让汤加当局无法收到太平洋海啸警报中心 (PTWC) 发出的海啸警报。",
+        "he": "לא דווח על נזקים רציניים לגוף ולרכוש בטונגה, אך נגרמה הפסקת חשמל זמנית, אשר לפי הדיווחים מנעה מרשויות טונגה לקבל את אזהרת הצונאמי שהוציא ה־PTWC.",
+        "ar": "ولم ترد تقارير عن وقوع أضرار أو إصابات كبيرة في تونغا، لكن الكهرباء انقطعت بشكل مؤقت، مما منع سلطات تونغا من تلقي تحذير تسونامي الصادر من PTWC."
+      }
+    },
+    {
+      "id": "flores-devtest-0081",
+      "row": 81,
+      "url": "https://en.wikinews.org/wiki/Subtropical_storm_forms_over_the_Atlantic",
+      "domain": "wikinews",
+      "texts": {
+        "en": "The tenth named storm of the Atlantic Hurricane season, Subtropical Storm Jerry, formed in the Atlantic Ocean today.",
+        "fr": "La tempête subtropicale Jerry, 10ème tempête de la saison des ouragans à porter un nom, est apparue ce jour dans l'océan Atlantique.",
+        "ru": "Сегодня в Атлантическом океане сформировался субтропический циклон Джерри, это десятый получивший имя циклон в этом сезоне ураганов а Атлантике.",
+        "zh": "亚热带风暴杰瑞 (Jerry) 今天在大西洋形成，这是大西洋飓风季节中第十个被命名的风暴。",
+        "he": "הסופה העשירית בעונת ההוריקנים האטלנטית שנקראה, הסופה התת־טרופית ג'רי, אשר נוצרה באוקיינוס האטלנטי היום.",
+        "ar": "تشكلت في المحيط الأطلسي اليوم عاشر عاصفة مُسماة لموسم الأعاصير الأطلسية، العاصفة شبه الاستوائية جيري."
+      }
+    },
+    {
+      "id": "flores-devtest-0126",
+      "row": 126,
+      "url": "https://en.wikinews.org/wiki/Crossing_guard_killed_by_truck_in_Glasgow,_Scotland",
+      "domain": "wikinews",
+      "texts": {
+        "en": "A person working in a garage near where the accident occurred said: \"There were children waiting to cross the road and they were all screaming and crying.\"",
+        "fr": "Un employé d'un garage proche du lieu de l’accident a déclaré : « il y avait des enfants qui cherchaient à traverser la route, et qui criaient et pleuraient. »",
+        "ru": "Человек, работающий в гараже недалеко от того места, где произошла авария, сказал: \"Там стояли дети, которые ждали, чтобы перейти дорогу. Все они кричали и плакали.",
+        "zh": "一名在事故发生地附近的车库立的工作人员说：“孩子们正等着过马路，并且都在大声尖叫，哭个不停。”",
+        "he": "\"אדם שעובד במוסך סמוך למקום בו אירעה התאונה אמר: היו ילדים שחיכו לחצות את הכביש וכולם צרחו ובכו.\"",
+        "ar": "وصرح شخصٌ يعمل في مرآبٍ قريب من مكان وقوع الحادث: \"كان هناك أطفالٌ ينتظرون عبور الشارع وكلهم كانوا يصرخون ويبكون\"."
+      }
+    },
+    {
+      "id": "flores-devtest-0139",
+      "row": 139,
+      "url": "https://en.wikinews.org/wiki/US_officials_flood_Grand_Canyon_to_restore_ecosystem",
+      "domain": "wikinews",
+      "texts": {
+        "en": "This sediment was necessary for creating sandbars and beaches, which served as wildlife habitats.",
+        "fr": "Ce sédiment était nécessaire à la création de bancs de sable et de plages, qui servaient d’habitats à la faune.",
+        "ru": "Этот осадок требовался для формирования пляжей и песчаных отмелей, являвшихся местом обитания диких животных.",
+        "zh": "这种沉积物是形成沙洲和海滩的必要条件，而沙洲和海滩是野生动物的栖息地。",
+        "he": "משקעים אלה היו נחוצים ליצירת שרטונים וחופים, ששימשו כבתי גידול לחיות בר.",
+        "ar": "مثلت تلك الرواسب ضرورة لتكوين مياه ضحلة وشواطئ، وهو ما شكّل موطناً للحياة البرية."
+      }
+    },
+    {
+      "id": "flores-devtest-0175",
+      "row": 175,
+      "url": "https://en.wikinews.org/wiki/Akayev_flees_Kyrgyzstan_as_protesters_seize_control_of_Bishkek",
+      "domain": "wikinews",
+      "texts": {
+        "en": "Bishkek was described as sinking into a state of \"anarchy\" by one observer, as gangs of people roamed the streets and plundered stores of consumer goods.",
+        "fr": "Un observateur a décrit Bichkek comme étant en train de sombrer dans un état d’« anarchie », tandis que la population se déplaçait en bandes dans les rues et pillait les magasins de biens de consommation.",
+        "ru": "Бишкек был описан одним обозревателем как погружающийся в состояние анархии, поскольку группы людей бегали по улицам и грабили магазины с потребительскими товарами.",
+        "zh": "一名观察者形容比什凯克（Bishkek）正在陷入“无政府“ 状态，成群的人们在街上游荡，掠夺商店里的消费品。",
+        "he": "\"בישקק תוארה כמתדרדרת למצב של אנרכיה על ידי משקיף אחד, כשכנופיות שוטטו ברחובות ובזזו חנויות של מוצרי צריכה.\"",
+        "ar": "وصف أحد المراقبين مدينة بيشكيك بأنها تغرق في حالة من \"فقدان السيطرة\"، حيث تجولت عصابات من الناس في الطرقات وقاموا بنهب مخازن السلع الاستهلاكية."
+      }
+    },
+    {
+      "id": "flores-devtest-0311",
+      "row": 311,
+      "url": "https://en.wikinews.org/wiki/Hong_Kong_tourists_held_hostage_in_the_Philippines,_nine_killed",
+      "domain": "wikinews",
+      "texts": {
+        "en": "Rolando Mendoza fired his M16 rifle at the tourists.",
+        "fr": "Rolando Mendoza tira avec son fusil M16 sur les touristes.",
+        "ru": "Роландо Мендоса выстреливал из своей винтовки М16 в туристов.",
+        "zh": "罗兰多·门多萨 (Rolando Mendoza) 架起他的 M16 步枪对游客扫射。",
+        "he": "רולנדו מנדוזה ירה ברובה ה-M16 שלו אל עבר התיירים.",
+        "ar": "أطلق رولاندو ميندوزا النار من بندقيته م16على السياح."
+      }
+    },
+    {
+      "id": "flores-devtest-0367",
+      "row": 367,
+      "url": "https://en.wikibooks.org/wiki/Wikijunior:Big_Cats/Tiger",
+      "domain": "wikibooks",
+      "texts": {
+        "en": "A well rounded athlete, the tiger can climb (though not well), swim, leap great distances and pull with five times the force of a strong human.",
+        "fr": "Athlète équilibré, le tigre peut grimper (mais parfois difficilement), nager, sauter de grandes distances et tracter avec cinq fois la force d'un humain puissant.",
+        "ru": "Будучи всесторонне развитым атлетом, тигр может взбираться на деревья (хотя и не очень хорошо), плавать, прыгать на большие расстояния и тянуть с силой пяти крепких человек.",
+        "zh": "老虎是全能运动员，它会攀爬（虽然攀爬能力不是很强）、游泳、跳远，拉力能达到人类大力士的五倍。",
+        "he": "בהיותו אתלטי במיוחד, הטיגריס יכול לטפס (אף שלא מאוד טוב), לשחות, לקפוץ למרחקים גדולים ולמשוך עם פי חמישה מהכוח של אדם חזק.",
+        "ar": "بصفته رياضيّاً شاملاً، يمكن للنّمر التّسلق (وإن لم يكن ذلك بشكلٍ جيد) والسّباحة والقفز لمسافاتٍ طويلةٍ والسّحب بقوّة خمسة أضعاف قوّة الإنسان."
+      }
+    },
+    {
+      "id": "flores-devtest-0432",
+      "row": 432,
+      "url": "https://en.wikibooks.org/wiki/Modern_Photography/Format",
+      "domain": "wikibooks",
+      "texts": {
+        "en": "It is still produced today, but more importantly its aspect ratio has been inherited by digital camera image sensor formats.",
+        "fr": "C'est encore fabriqué aujourd'hui, mais ce qui importe est que son format d'image est hérité du format du capteur photographique des caméras numériques.",
+        "ru": "Сегодня её всё ещё производят, но более важно то, что её соотношение сторон унаследовали размеры изображений цифровых камер.",
+        "zh": "时至今日仍有生产，但更重要的是它的长宽比应用到了数码相机图像传感器的格式上。",
+        "he": "הוא עדיין מיוצר היום, אך חשוב מכך, יחס הגובה-רוחב שלו עבר בירושה לפורמטים של דימות במצלמה דיגיטלית.",
+        "ar": "ما يزال يُنتج إلى اليوم، ولكنّ الأهمّ من ذلك أن نسبة عرضه إلى ارتفاعه قد ورثتها منه تنسيقات مستشعر الصور في الكاميرات الرقمية."
+      }
+    },
+    {
+      "id": "flores-devtest-0530",
+      "row": 530,
+      "url": "https://en.wikibooks.org/wiki/Introduction_to_Paleoanthropology/Oldowan",
+      "domain": "wikibooks",
+      "texts": {
+        "en": "Moreover, failure to do so has serious consequences: growth depression, malnutrition, and ultimately death.",
+        "fr": "En outre, une absence de réaction a de graves conséquences : troubles de la croissance, malnutrition et en fin de compte, la mort.",
+        "ru": "Более того, невыполнение этого приведёт к таким серьёзным последствиям, как замедление роста, недоедание и, в конечном счёте, смерть.",
+        "zh": "此外，如果做不到这一点将会带来严重的后果：生长抑制、营养不良，最终导致死亡。",
+        "he": "יתר על כן, לכישלון לעשות זאת יש השלכות חמורות: עיכוב בגדילה, תת-תזונה ובסופו של דבר מוות.",
+        "ar": "كما أن الفشل في فعل ذلك سيؤدي إلى عواقب وخيمة: اكتئاب النمو، ونقص التغذية، وفي النهاية الموت."
+      }
+    },
+    {
+      "id": "flores-devtest-0538",
+      "row": 538,
+      "url": "https://en.wikibooks.org/wiki/Yoga/What_is_Yoga",
+      "domain": "wikibooks",
+      "texts": {
+        "en": "The amount of inner peace a person possesses correlates oppositely to the amount of tension in one’s body and spirit.",
+        "fr": "Le degré de paix intérieure d'une personne s'oppose au degré de tension dans son corps et son esprit.",
+        "ru": "Количество внутреннего покоя человека обратно пропорционально количеству напряжения в его теле и душе.",
+        "zh": "一个人内心平静的程度与身体和精神的紧张程度是相反的。",
+        "he": "כמות השקט הפנימי שיש לאדם עומדת ביחס הפוך לכמות המתח בגופו וברוחו של האדם.",
+        "ar": "يرتبط مقدارُ السلام الداخلي الذي يملكه الشخص بشكل عكسي بمقدار التوتر في جسده وروحه."
+      }
+    },
+    {
+      "id": "flores-devtest-0569",
+      "row": 569,
+      "url": "https://en.wikibooks.org/wiki/American_Revolution/The_Declaration_of_Independence",
+      "domain": "wikibooks",
+      "texts": {
+        "en": "After its adoption by Congress on July 4, a handwritten draft signed by the President of Congress John Hancock and the Secretary Charles Thomson was then sent a few blocks away to the printing shop of John Dunlap.",
+        "fr": "Après son adoption par le Congrès le 4 juillet, un projet manuscrit signé par le président du Congrès John Hancock et le secrétaire Charles Thomson a ensuite été envoyé à quelques rues de là, à l'imprimerie de John Dunlap.",
+        "ru": "После принятия Конгрессом 4 июля, рукописный проект, подписанный председателем Конгресса Джоном Хэнкоком и секретарем Чарльзом Томсоном, был отправлен за несколько кварталов в печатную мастерскую Джона Данлапа.",
+        "zh": "由议长约翰·汉考克和秘书长查尔斯·汤姆逊签署的手写草案在7月4日得到大陆议会批准，之后被送到几个街区以外的约翰·邓拉普印刷厂付印。",
+        "he": "לאחר אימוצה בידי הקונגרס ב-4 ביולי, טיוטה בכתב יד בחתימת נשיא הקונגרס ג'ון הנקוק והמזכיר צ'רלס תומסון נשלחה לבית הדפוס של ג'ון דנלאפ, מרחק כמה רחובות.",
+        "ar": "بعد تبنيه من قبل الكونغرس في 4 يوليو، أُرسلت مسودةٌ مكتوبةٌ بخط اليد وقعها رئيس الكونغرس جون هانكوك وأمين السر تشارلز طومسون على بعد البعض من الأبنية إلى مطبعة جون دونلاب."
+      }
+    },
+    {
+      "id": "flores-devtest-0578",
+      "row": 578,
+      "url": "https://en.wikibooks.org/wiki/Basic_Physics_of_Digital_Radiography/The_Computer",
+      "domain": "wikibooks",
+      "texts": {
+        "en": "Virtually all computers in use today are based on the manipulation of information which is coded in the form of binary numbers.",
+        "fr": "Pratiquement tous les ordinateurs utilisés aujourd'hui sont basés sur la manipulation d'informations qui sont codées sous forme de nombres binaires.",
+        "ru": "Почти все компьютеры, которые используются сегодня, основаны на обработке информации, которая закодирована в виде двоичных чисел.",
+        "zh": "当今，几乎所有投入使用的计算机都是以处理二进制编码的信息为基础的。",
+        "he": "כמעט כל המחשבים שנמצאים בשימוש היום מבוססים על מניפולציה של מידע המקודד בצורה של מספרים בינאריים.",
+        "ar": "تعتمد جميعُ أجهزة الحاسوبِ المستخدمة اليوم افتراضياً على معالجة المعلومات المشفرة في شكل أرقامٍ ثُنائية."
+      }
+    },
+    {
+      "id": "flores-devtest-0585",
+      "row": 585,
+      "url": "https://en.wikibooks.org/wiki/Parasitic_Insects,_Mites_and_Ticks:_Genera_of_Medical_and_Veterinary_Importance/Bloodsucking_bugs",
+      "domain": "wikibooks",
+      "texts": {
+        "en": "Both Assassin-bugs and Bed-bugs are nidicolous, adapted to living in nest or housing of their host.",
+        "fr": "Les réduves, tout comme les punaises de lit, sont nidicoles, c'est-à-dire adaptées pour vivre dans le nid ou l'habitat de leur hôte.",
+        "ru": "И хищнецы, и постельные клопы являются гнездовыми видами, приспособленными для жизни в гнезде или жилище своего хозяина.",
+        "zh": "猎蝽和臭虫都是留巢昆虫，适应在宿主的巢穴或住房中生活。",
+        "he": "גם פשפשים טורפניתיים וגם פשפשי מיטה, הם חובשי קן שהסתגלו לחיות בקן או בבית של מארחם.",
+        "ar": "يتسم كل من \"البق القاتل\" و\"بق الفراش\" بطول مدة الحضانة، ويتكيفان مع العيش في عش أو سكن مضيفهم."
+      }
+    },
+    {
+      "id": "flores-devtest-0604",
+      "row": 604,
+      "url": "https://en.wikibooks.org/wiki/General_Biology/Genetics/Mutation",
+      "domain": "wikibooks",
+      "texts": {
+        "en": "Only mutations in germ-line cells can be passed on to children, while mutations elsewhere can cause cell-death or cancer.",
+        "fr": "Seules les mutations des cellules germinales peuvent être transmises aux enfants, tandis que d'autres mutations peuvent entraîner la mort des cellules ou le cancer.",
+        "ru": "Только мутации в клетках зародышевой линии могут передаваться далее детям, в то время как мутации где-то ещё могут привести к гибели клеток или раку.",
+        "zh": "只有生殖细胞的突变才会遗传给孩子，而其他细胞的突变则会导致细胞死亡或癌症。",
+        "he": "רק מוטציות בתאים משושלת שכבת הנבט יכולות לעבור לילדים, בעוד מוטציות במקומות אחרים עלולות לגרום למות תאים או לסרטן.",
+        "ar": "يمكن فقط نقل الطفرات في خلايا الخط الجرثومي إلى الأطفال، بينما يمكن أن تسبب الطفرات في أماكن أخرى موت الخلايا أو السرطان."
+      }
+    },
+    {
+      "id": "flores-devtest-0720",
+      "row": 720,
+      "url": "https://en.wikivoyage.org/wiki/Timbuktu",
+      "domain": "wikivoyage",
+      "texts": {
+        "en": "In 1990, it was added to the list of world heritage sites in danger, due to the threat of desert sands.",
+        "fr": "En 1990, il a été ajouté à la liste des sites du patrimoine mondial en danger, en raison de la menace des sables du désert.",
+        "ru": "В 1990 году он был добавлен в список всемирного наследия, находящегося под угрозой из-за опасности со стороны песков пустыни.",
+        "zh": "1990 年，由于沙漠的威胁，它被列入了濒危世界遗产名录。",
+        "he": "ב-1990, הוא נוסף לרשימת אתרי המורשת העולמיים שבסיכון, עקב הסכנה של חולות מדבר.",
+        "ar": "في سنة 1990، تمت إضافتها إلى لائحة مواقع التراث العالمي المهددة بالخطر، نظراً لتهديد رمال الصحراء."
+      }
+    },
+    {
+      "id": "flores-devtest-0778",
+      "row": 778,
+      "url": "https://en.wikivoyage.org/wiki/Auckland",
+      "domain": "wikivoyage",
+      "texts": {
+        "en": "These are sometimes-crowded family beaches with a good range of shops lining the shore. Swimming is safe.",
+        "fr": "Ces plages, parfois très fréquentées par les familles, disposent de nombreuses boutiques le long du littoral. La baignade y est sans danger.",
+        "ru": "Это иногда переполненные народом семейные пляжи с хорошим выбором магазинов, расположенных вдоль берега. Плавать безопасно.",
+        "zh": "这些海滩有时挤满了度假的家庭，沿岸排列着各种各样的商店。 游泳很安全。",
+        "he": "אלו חופי משפחות שלעתים עמוסים עם מגוון נהדר של חנויות לאורך החוף. השחייה בטוחה.",
+        "ar": "هذه الشواطئ العائلية مزدحمة في بعض الأحيان مع مجموعة جيدة من المتاجر التي تصطف على الشاطئ. السباحة آمنة."
+      }
+    },
+    {
+      "id": "flores-devtest-0781",
+      "row": 781,
+      "url": "https://en.wikivoyage.org/wiki/Noum%C3%A9a",
+      "domain": "wikivoyage",
+      "texts": {
+        "en": "The local tap water is perfectly safe to drink, but bottled water is easy to find if you are fearful.",
+        "fr": "Vous pouvez boire l'eau du robinet local sans danger, mais vous pouvez facilement trouver de l'eau en bouteille si vous avez des craintes à son sujet.",
+        "ru": "Местная водопроводная вода совершенно безопасна для питья, но если вы все же опасаетесь, не составит труда найти и бутилированную воду.",
+        "zh": "当地的自来水完全可以达到安全饮用标准，但如果你还是担心，也可以很容易地买到瓶装水。",
+        "he": "מי הברז המקומיים בטוחים לחלוטין לשתייה, אך למי שחושש, קל מאוד למצוא בקבוקים מים מינרלים.",
+        "ar": "مياه الصنبور المحلّيّة صالحة تماماً للشرب، ولكن من السهل إيجاد زجاجات المياه، إن كنت متخوّفاً."
+      }
+    },
+    {
+      "id": "flores-devtest-0801",
+      "row": 801,
+      "url": "https://en.wikivoyage.org/wiki/Gambling",
+      "domain": "wikivoyage",
+      "texts": {
+        "en": "They usually have special food, drink and entertainment offers, to keep guests in a good mood, and keep them at the premise.",
+        "fr": "Ils proposent généralement des offres spéciales de plats, de boissons et de divertissements afin de maintenir la bonne humeur des invités et de les garder sur place.",
+        "ru": "В них обычно предлагается особая еда, напитки и развлечения, чтобы гости оставались в хорошем настроении и не покидали заведения.",
+        "zh": "他们通常会提供特别的食品、饮料和娱乐活动，让客人保持愉悦，留在赌场。",
+        "he": "לרוב יש להם הצעות מיוחדות של מזון, שתייה ובידור, כדי לשמור מצב רוחם של האורחים ולדאוג שלא יצאו מהמתחם.",
+        "ar": "لديهم عادة وجبات خاصة، ومشروبات، وعروض ترفيهية، للحفاظ على مزاج الضيوف الجيد، وإبقائهم في المبنى."
+      }
+    },
+    {
+      "id": "flores-devtest-0808",
+      "row": 808,
+      "url": "https://en.wikivoyage.org/wiki/Safaris",
+      "domain": "wikivoyage",
+      "texts": {
+        "en": "Safaris are perhaps the greatest tourism draw in Africa and the highlight for many visitors.",
+        "fr": "Les safaris sont peut-être le plus grand attrait touristique en Afrique et le moment le plus marquant pour de nombreux visiteurs.",
+        "ru": "Сафари — это, вероятно, самая большая приманка для туристов в Африке и главное событие для многих путешественников.",
+        "zh": "游猎活动也许是非洲最吸引人的旅游活动，也是许多游客行程中的亮点。",
+        "he": "טיולי ספארי הם אולי מוקד המשיכה התיירותית הגדול ביותר באפריקה וגולת הכותרת עבור מטיילים רבים.",
+        "ar": "ربما تكون رحلات السفاري هي أكبرُ عاملِ جذبٍ سياحيٍ في إفريقيا والفعالية الأهم بالنسبة لكثيرٍ من الزوار."
+      }
+    },
+    {
+      "id": "flores-devtest-0895",
+      "row": 895,
+      "url": "https://en.wikivoyage.org/wiki/Culture_shock",
+      "domain": "wikivoyage",
+      "texts": {
+        "en": "Travellers who had an easy time adjusting to the new culture sometimes have a particularly hard time readjusting to their native culture.",
+        "fr": "Les voyageurs qui ont eu du mal à s'adapter à la nouvelle culture ont parfois beaucoup de mal à se réadapter à leur culture d'origine.",
+        "ru": "Путешественникам, которые легко привыкают к новой культуре, иногда бывает особенно трудно заново привыкнуть к своей родной культуре.",
+        "zh": "对于很容易适应新文化的旅行者来说，有时很难重新适应他们的本土文化。",
+        "he": "מטיילים שהיה להם קל להסתגל לתרבות החדשה מתקשים לעתים להסתגל מחדש לתרבות אליה הם נולדו.",
+        "ar": "في بعض الأحيان، يواجه المسافرون الذين يجدون سهولة في التكيف مع الثقافة الجديدة صعوبة خاصة في إعادة التكيف مع ثقافتهم الأصلية."
+      }
+    },
+    {
+      "id": "flores-devtest-0963",
+      "row": 963,
+      "url": "https://en.wikivoyage.org/wiki/Plitvice_Lakes_National_Park",
+      "domain": "wikivoyage",
+      "texts": {
+        "en": "The Plitvice Lakes national park is heavily forested, mainly with beech, spruce, and fir trees, and features a mixture of Alpine and Mediterranean vegetation.",
+        "fr": "Le parc national des lacs de Plitvice est densément boisé, principalement de hêtres, d'épicéas et de sapins, et présente un mélange de végétation alpine et méditerranéenne.",
+        "ru": "Национальный парк Плитвицкие озёра сильно зарос лесом, в основном буками, елями и пихтами, и представляет собой смесь альпийской и средиземноморской растительности.",
+        "zh": "普利特维茨湖国家公园森林茂密，主要树种有山毛榉、云杉和冷杉，并以高山和地中海植被混合为特色。",
+        "he": "הפארק הלאומי אגמי פליטביצה מיוער בצפיפות, בעיקר עצי אשור, אשוחית  ואשוח, ומכיל תערובת של צמחייה אלפינית וים תיכונית.",
+        "ar": "تملأ الغابات الكثيفة منتزه بحيرات بليفيتش الوطني وتشكلها بالأساس أشجار الزان والتنوب والشوح، ويميزه مزيج من نباتات الألب والبحر الأبيض المتوسط."
+      }
+    },
+    {
+      "id": "flores-devtest-1001",
+      "row": 1001,
+      "url": "https://en.wikivoyage.org/wiki/Easter_travel",
+      "domain": "wikivoyage",
+      "texts": {
+        "en": "There are of course Christian theological explanations for this tradition, but it may well be a pre-Christian Spring and Fertility ritual.",
+        "fr": "Il existe bien évidemment des explications théologiques chrétiennes pour cette tradition, mais il se pourrait bien qu’il s’agisse d’un rituel préchrétien de printemps et de fertilité.",
+        "ru": "Конечно же, эта традиция имеет христианское теологическое объяснение, но это вполне может быть и дохристианский ритуал весны и плодородия.",
+        "zh": "当然，这个传统有其基督教神学的解释，但它很可能是基督诞生以前就存在的一种庆祝春天、祈求丰收的仪式。",
+        "he": "ישנם כמובן הסברים נוצריים תאולוגיים למסורת זו, אך מאוד ייתכן שזהו טקס אביב ופוריות טרום-נוצרי.",
+        "ar": "يمكن بكل تأكيد تفسير هذا التقليد من وجهة نظر لاهوتية مسيحية، ولكن هناك احتمال أن يكون طقساً دينياً لفصل الربيع والخصوبة من قبل زمن المسيحية."
+      }
+    }
+  ]
+}

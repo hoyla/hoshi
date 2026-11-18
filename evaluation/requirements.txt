@@ -1,0 +1,2 @@
+# Evaluation and CI scoring only; no dependency is added to offline installers.
+sacrebleu==2.5.1

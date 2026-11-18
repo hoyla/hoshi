@@ -333,6 +333,14 @@ align sentences, so it points at a paragraph, not a sentence. One article is thi
 lists, tables and text dense with names and numbers will behave differently.
 And it says nothing about whether the words are right.
 
+An independent, frozen reference evaluation is in [evaluation/](evaluation/).
+It uses 24 human-translated FLORES-200 examples from distinct news, educational
+and travel articles, in ten directions across English, French, Russian,
+Chinese, Hebrew and Arabic. It records raw outputs, engine identities and
+reference-overlap scores without changing the checker thresholds. Its results
+are a small sentence-level benchmark; bilingual expert review and evaluation
+on documents from the intended workflow remain separate work.
+
 Two weaknesses turned up in use:
 
 - *When the translation has a different number of lines and of paragraphs
@@ -721,7 +729,9 @@ The Windows items can't be done from a Mac.
   model in the list
 - copying the text out of a PDF and translating that, which the user guide
   suggests when there is no Word version
-- any evaluation of either engine on real documents
+- bilingual expert evaluation of either engine on real documents from the
+  intended workflow, beyond the sentence-level reference benchmark in
+  [evaluation/](evaluation/)
 
 Before relying on the Windows side, run a smoke bundle's `install.cmd` on a
 connected Windows PC with Docker Desktop.
@@ -729,7 +739,8 @@ connected Windows PC with Docker Desktop.
 ## Credits and licences
 
 Hoshi's own code is the build scripts, the installers, the translate helpers,
-the web page and the dropped-text check. It is © 2026 Luke Hoyland and is free
+the web page, the dropped-text check, evaluation tools and regression tests.
+It is © 2026 Luke Hoyland and is free
 software under the [GNU Affero General Public License, version 3](LICENSE).
 That is LibreTranslate's licence, and the licence of PyMuPDF, which the web
 page uses to read PDFs.
