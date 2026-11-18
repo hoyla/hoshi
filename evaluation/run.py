@@ -58,6 +58,23 @@ def directions(corpus):
             for source, target in ((other, "en"), ("en", other))]
 
 
+def validate_corpus(corpus):
+    languages = corpus["languages"]
+    if corpus["protocol"] != 1 or "en" not in languages or len(languages) < 2 or not corpus["cases"]:
+        raise ValueError("expected a nonempty protocol-1 corpus with English and another language")
+    if any(not re.fullmatch(r"[a-z]{2,3}(?:-[A-Za-z0-9]+)*", code) for code in languages):
+        raise ValueError("unsafe language code in corpus")
+    seen = set()
+    for case in corpus["cases"]:
+        identifier = case["id"]
+        if not re.fullmatch(r"[A-Za-z0-9_-]+", identifier) or identifier in seen:
+            raise ValueError("unsafe or duplicate case ID in corpus")
+        seen.add(identifier)
+        if any(not isinstance(case["texts"].get(code), str) or not case["texts"][code].strip()
+               or any(c in case["texts"][code] for c in "\r\n\x00") for code in languages):
+            raise ValueError("each selected case needs one nonempty text line in every language")
+
+
 def case_key(case_id, source, target):
     return f"{case_id}.{source}-{target}"
 
@@ -164,6 +181,7 @@ def run(args):
 def translate_cases(args):
     corpus_bytes = args.corpus.read_bytes()
     corpus = json.loads(corpus_bytes)
+    validate_corpus(corpus)
     identity = engine_info(args)
     expected = {"protocol": corpus["protocol"], "corpus_sha256": sha(corpus_bytes),
                 "engine": identity, "checker_sha256": sha(checker_program()),

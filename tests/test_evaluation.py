@@ -1,8 +1,10 @@
 """Evaluation invariants and scoring tests; no model or translation service."""
 
 import copy
+import csv
 import importlib.util
 import json
+import io
 from pathlib import Path
 import shutil
 import tempfile
@@ -66,6 +68,21 @@ class SelectionTests(unittest.TestCase):
             path.write_bytes(b"changed archive")
             with self.assertRaisesRegex(ValueError, "checksum"):
                 prepare.prepare(path)
+
+    def test_unsafe_ids_and_misaligned_texts_are_rejected_before_writes(self):
+        for change in ("../escape", "missing", "newline", "duplicate"):
+            with self.subTest(change=change):
+                corpus = mini_corpus()
+                if change == "missing":
+                    del corpus["cases"][0]["texts"]["fr"]
+                elif change == "newline":
+                    corpus["cases"][0]["texts"]["en"] += "\nextra line"
+                elif change == "duplicate":
+                    corpus["cases"][1]["id"] = corpus["cases"][0]["id"]
+                else:
+                    corpus["cases"][0]["id"] = change
+                with self.assertRaises(ValueError):
+                    run.validate_corpus(corpus)
 
     def test_saved_engine_results_match_the_frozen_corpus(self):
         data = run.CORPUS.read_bytes()
@@ -168,6 +185,9 @@ class ScoringTests(unittest.TestCase):
             report, sheet, key = score.score(run.json_bytes(corpus), results)
         self.assertEqual(report["human_review"], "not performed")
         self.assertIn("preferred_A_B_tie", sheet.decode("utf-8-sig"))
+        for row in csv.DictReader(io.StringIO(sheet.decode("utf-8-sig"))):
+            for field in ("preferred_A_B_tie", "material_errors_A", "material_errors_B", "reviewer_notes"):
+                self.assertEqual(row[field], "")
         self.assertEqual(len(key["systems"]), 4)
         self.assertEqual(report["directions"][0]["reference_judged"], 0)
         self.assertIn("not performed", score.markdown(report))

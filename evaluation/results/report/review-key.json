@@ -1,0 +1,965 @@
+{
+  "seed": 20261118,
+  "systems": {
+    "flores-devtest-0057.fr-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0058.fr-en": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0077.fr-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0081.fr-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0126.fr-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0139.fr-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0175.fr-en": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0311.fr-en": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0367.fr-en": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0432.fr-en": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0530.fr-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0538.fr-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0569.fr-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0578.fr-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0585.fr-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0604.fr-en": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0720.fr-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0778.fr-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0781.fr-en": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0801.fr-en": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0808.fr-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0895.fr-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0963.fr-en": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-1001.fr-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0057.en-fr": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0058.en-fr": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0077.en-fr": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0081.en-fr": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0126.en-fr": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0139.en-fr": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0175.en-fr": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0311.en-fr": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0367.en-fr": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0432.en-fr": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0530.en-fr": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0538.en-fr": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0569.en-fr": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0578.en-fr": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0585.en-fr": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0604.en-fr": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0720.en-fr": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0778.en-fr": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0781.en-fr": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0801.en-fr": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0808.en-fr": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0895.en-fr": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0963.en-fr": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-1001.en-fr": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0057.ru-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0058.ru-en": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0077.ru-en": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0081.ru-en": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0126.ru-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0139.ru-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0175.ru-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0311.ru-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0367.ru-en": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0432.ru-en": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0530.ru-en": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0538.ru-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0569.ru-en": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0578.ru-en": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0585.ru-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0604.ru-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0720.ru-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0778.ru-en": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0781.ru-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0801.ru-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0808.ru-en": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0895.ru-en": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0963.ru-en": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-1001.ru-en": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0057.en-ru": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0058.en-ru": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0077.en-ru": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0081.en-ru": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0126.en-ru": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0139.en-ru": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0175.en-ru": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0311.en-ru": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0367.en-ru": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0432.en-ru": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0530.en-ru": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0538.en-ru": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0569.en-ru": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0578.en-ru": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0585.en-ru": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0604.en-ru": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0720.en-ru": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0778.en-ru": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0781.en-ru": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0801.en-ru": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0808.en-ru": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0895.en-ru": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0963.en-ru": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-1001.en-ru": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0057.zh-en": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0058.zh-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0077.zh-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0081.zh-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0126.zh-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0139.zh-en": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0175.zh-en": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0311.zh-en": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0367.zh-en": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0432.zh-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0530.zh-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0538.zh-en": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0569.zh-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0578.zh-en": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0585.zh-en": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0604.zh-en": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0720.zh-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0778.zh-en": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0781.zh-en": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0801.zh-en": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0808.zh-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0895.zh-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0963.zh-en": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-1001.zh-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0057.en-zh": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0058.en-zh": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0077.en-zh": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0081.en-zh": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0126.en-zh": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0139.en-zh": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0175.en-zh": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0311.en-zh": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0367.en-zh": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0432.en-zh": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0530.en-zh": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0538.en-zh": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0569.en-zh": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0578.en-zh": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0585.en-zh": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0604.en-zh": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0720.en-zh": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0778.en-zh": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0781.en-zh": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0801.en-zh": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0808.en-zh": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0895.en-zh": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0963.en-zh": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-1001.en-zh": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0057.he-en": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0058.he-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0077.he-en": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0081.he-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0126.he-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0139.he-en": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0175.he-en": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0311.he-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0367.he-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0432.he-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0530.he-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0538.he-en": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0569.he-en": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0578.he-en": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0585.he-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0604.he-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0720.he-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0778.he-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0781.he-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0801.he-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0808.he-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0895.he-en": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0963.he-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-1001.he-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0057.en-he": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0058.en-he": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0077.en-he": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0081.en-he": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0126.en-he": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0139.en-he": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0175.en-he": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0311.en-he": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0367.en-he": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0432.en-he": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0530.en-he": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0538.en-he": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0569.en-he": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0578.en-he": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0585.en-he": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0604.en-he": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0720.en-he": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0778.en-he": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0781.en-he": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0801.en-he": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0808.en-he": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0895.en-he": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0963.en-he": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-1001.en-he": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0057.ar-en": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0058.ar-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0077.ar-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0081.ar-en": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0126.ar-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0139.ar-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0175.ar-en": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0311.ar-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0367.ar-en": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0432.ar-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0530.ar-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0538.ar-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0569.ar-en": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0578.ar-en": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0585.ar-en": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0604.ar-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0720.ar-en": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0778.ar-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0781.ar-en": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0801.ar-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0808.ar-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0895.ar-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0963.ar-en": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-1001.ar-en": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0057.en-ar": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0058.en-ar": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0077.en-ar": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0081.en-ar": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0126.en-ar": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0139.en-ar": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0175.en-ar": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0311.en-ar": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0367.en-ar": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0432.en-ar": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0530.en-ar": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0538.en-ar": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0569.en-ar": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0578.en-ar": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0585.en-ar": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0604.en-ar": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0720.en-ar": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0778.en-ar": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0781.en-ar": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0801.en-ar": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-0808.en-ar": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0895.en-ar": {
+      "A": "gemma",
+      "B": "libre"
+    },
+    "flores-devtest-0963.en-ar": {
+      "A": "libre",
+      "B": "gemma"
+    },
+    "flores-devtest-1001.en-ar": {
+      "A": "gemma",
+      "B": "libre"
+    }
+  }
+}

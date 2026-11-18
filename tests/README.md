@@ -8,10 +8,8 @@ python3 -m unittest discover -s tests -v
 python3 web/tests/test_parity.py
 ```
 
-The pip dependencies are only for testing the web code. The offline installers
-keep using tools supplied by their target operating systems.
-
-They also include the optional evaluation scoring dependency. Evaluation
+The pip dependencies support the web and optional evaluation tests. The offline
+installers keep using tools supplied by their target operating systems. Evaluation
 tests verify the frozen corpus, saved output hashes, complete case coverage,
 metric signatures, resumable work files and the absence of invented human
 ratings. They never download a model or run real inference in CI.

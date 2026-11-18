@@ -23,6 +23,7 @@ except ImportError:
 
 
 def verify(corpus, corpus_bytes, result):
+    run.validate_corpus(corpus)
     manifest = result["run"]["identity"]
     if manifest["corpus_sha256"] != run.sha(corpus_bytes):
         raise ValueError("result corpus hash does not match the selected references")
