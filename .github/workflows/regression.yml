@@ -1,0 +1,76 @@
+name: Regression checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: regression-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mac:
+    name: macOS installers and helpers
+    runs-on: macos-15
+    timeout-minutes: 10
+    env:
+      HOSHI_PWSH: pwsh
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: tests/requirements.txt
+      - run: python -m pip install -r tests/requirements.txt
+      - name: Native installer and output integrity regressions
+        run: python -m unittest discover -s tests -v
+      - name: Splitter parity
+        run: python web/tests/test_parity.py
+      - name: macOS Bash syntax
+        run: |
+          for script in build-*.sh bundle/*.sh calibration/*.sh; do
+            /bin/bash -n "$script"
+          done
+      - name: Web patch build and checksums
+        run: |
+          bash build-web-patch.sh --out "$RUNNER_TEMP/translation-web"
+          cd "$RUNNER_TEMP/translation-web"
+          shasum -a 256 --quiet -c SHA256SUMS
+
+  windows:
+    name: Windows installers and helpers (${{ matrix.runtime }})
+    runs-on: windows-2022
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        runtime: [powershell, pwsh]
+    env:
+      HOSHI_PWSH: ${{ matrix.runtime }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: tests/requirements.txt
+      - run: python -m pip install -r tests/requirements.txt
+      - name: Native installer and output integrity regressions
+        shell: pwsh
+        run: |
+          $version = & $env:HOSHI_PWSH -NoProfile -Command '$PSVersionTable.PSVersion.ToString()'
+          Write-Host "Testing $env:HOSHI_PWSH $version"
+          if ($env:HOSHI_PWSH -eq 'powershell' -and $version -notlike '5.1.*') {
+            throw "Expected Windows PowerShell 5.1, got $version"
+          }
+          python -m unittest discover -s tests -v
