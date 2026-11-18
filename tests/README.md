@@ -39,6 +39,9 @@ runs the production translation helpers separately.
 On macOS, the command stand-ins in `install_stubs.py` replace Docker, curl,
 application opening, application copying, hardware identification and long waits.
 The full-installer harness refuses any sudo or disk-image mounting command.
+Docker startup is also tested by extracting the installer's actual startup
+function and supplying a fixture application path, so those cases do not depend
+on Docker Desktop being present on the host.
 On Windows, `install_stubs.ps1` supplies Docker, robocopy and process-launch
 functions in the installer's parent scope. A process-local .NET request factory
 answers service health checks without contacting any network service. A tiny

@@ -13,6 +13,7 @@ import json
 import os
 from pathlib import Path
 import plistlib
+import re
 import shutil
 import socket
 import subprocess
@@ -252,10 +253,41 @@ class MacInstallerTests(MacFixture, InstallerCases, unittest.TestCase):
         return ["/bin/bash", str(self.bundle / "install.sh"), "--prefix", str(self.prefix),
                 "--app-dir", str(self.apps), "--port", self.port, "--name", "test-libre", *options]
 
-    def test_stopped_docker_is_opened_before_install(self):
+    def test_stopped_docker_is_handled_without_real_services(self):
         self.settings["docker_down"] = True
-        self.run_installer()
-        self.assertTrue(self.calls("open"))
+        if Path("/Applications/Docker.app").is_dir():
+            self.run_installer()
+            self.assertTrue(self.calls("open"))
+        else:
+            self.assertIn("Docker isn't running", self.run_installer(success=False))
+            self.assertFalse(self.calls("open"))
+
+    def run_docker_start(self, success=True):
+        # Exercise the installer's actual startup function with a fixture app
+        # path; a hosted runner does not need /Applications/Docker.app.
+        source = (self.bundle / "install.sh").read_text()
+        definitions = [re.search(rf"^{name}\(\) \{{.*?^\}}", source, re.M | re.S).group()
+                       for name in ("start_docker",)]
+        definitions += [re.search(rf"^{name}\(\) \{{[^\n]*", source, re.M).group()
+                        for name in ("say", "note")]
+        script = '\n'.join(definitions) + '\nDOCKER_APP="$HOSHI_INSTALL_TEST_ROOT/applications/Docker.app"\nstart_docker\n'
+        (self.root / "settings.json").write_text(json.dumps(self.settings))
+        done = subprocess.run(["/bin/bash", "-c", script], env=self.environment,
+                              capture_output=True, text=True, timeout=15)
+        self.assertEqual(done.returncode == 0, success, done.stdout + done.stderr)
+
+    def test_docker_start_uses_fixture_app_and_waits_for_engine(self):
+        self.settings["docker_down"] = True
+        self.run_docker_start()
+        self.assertEqual(self.calls("open"), [["-a", str(self.apps / "Docker.app")]])
+
+    def test_docker_start_reports_failed_application_open(self):
+        self.settings["open_fails"] = True
+        self.run_docker_start(success=False)
+
+    def test_docker_start_reports_engine_never_ready(self):
+        self.settings["docker_never_ready"] = True
+        self.run_docker_start(success=False)
 
     def test_run_keeps_a_log(self):
         self.run_installer()

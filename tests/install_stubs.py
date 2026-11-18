@@ -40,7 +40,7 @@ elif command == "sysctl":
     print(16 * 1024**3 if args[-1] == "hw.memsize" else "Test Apple Silicon")
 elif command == "docker":
     if args[0] == "info":
-        if settings.get("docker_down") and not state.get("docker_started"):
+        if settings.get("docker_never_ready") or (settings.get("docker_down") and not state.get("docker_started")):
             fail("Docker is stopped")
         print("overlay2")
     elif args[0] == "version":
