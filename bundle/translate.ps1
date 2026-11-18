@@ -26,7 +26,8 @@
 Set-StrictMode -Version 2.0
 $ErrorActionPreference = 'Stop'
 
-$VERSION = '2'
+$VERSION = '3'
+$TOOL = "airgapped-translation translate.ps1 v$VERSION"
 $HERE = Split-Path -Parent $MyInvocation.MyCommand.Path
 $LANGFILE = Join-Path $HERE 'languages.tsv'
 $ENVFILE = Join-Path $HERE 'bundle.env'
@@ -133,6 +134,44 @@ function Get-Sha256([string]$Path) {
 }
 
 function Get-UtcStamp([string]$Format) { return [DateTime]::UtcNow.ToString($Format, $INVARIANT) }
+
+function Reserve-Output([string]$Directory, [string]$Base, [string]$Suffix) {
+  $stamp = Get-UtcStamp "yyyyMMdd'T'HHmmss'Z'"
+  $serial = 0
+  while ($true) {
+    $tail = ''
+    if ($serial -gt 0) { $tail = ".$stamp" }
+    if ($serial -gt 1) { $tail += "-$serial" }
+    $path = Join-Path $Directory "$Base$tail$Suffix"
+    $lock = "$path.lock"
+    $stream = $null
+    try { $stream = [System.IO.File]::Open($lock, [System.IO.FileMode]::CreateNew, [System.IO.FileAccess]::Write, [System.IO.FileShare]::None) }
+    catch [System.IO.IOException] {
+      if (-not (Test-Path -LiteralPath $lock)) { throw }
+    }
+    if ($null -ne $stream) {
+      if (-not (Test-Path -LiteralPath $path) -and -not (Test-Path -LiteralPath "$path.provenance.json")) {
+        return @{ Path = $path; Lock = $lock; Stream = $stream }
+      }
+      $stream.Dispose()
+      [System.IO.File]::Delete($lock)
+    }
+    $serial++
+  }
+}
+
+function Publish-New([string]$Source, [string]$Destination) {
+  # CreateNew also works on exFAT and refuses an existing destination.
+  $dest = [System.IO.File]::Open($Destination, [System.IO.FileMode]::CreateNew, [System.IO.FileAccess]::Write, [System.IO.FileShare]::None)
+  try {
+    $src = [System.IO.File]::OpenRead($Source)
+    try { $src.CopyTo($dest); $dest.Flush() } finally { $src.Dispose() }
+  } catch {
+    $dest.Dispose()
+    [System.IO.File]::Delete($Destination)
+    throw
+  } finally { $dest.Dispose() }
+}
 
 function Get-NamedEncoding([string]$Name) { # $null if the name isn't known
   $n = $Name.Trim()
@@ -859,6 +898,8 @@ if ($usageError) {
 
 # ----------------------------------------------------------------------- main
 $TEXT_EXTENSIONS = @('txt', 'text', 'md', 'markdown')
+$reservation = $null
+$ownedOutput = ''; $ownedSidecar = ''
 $exitCode = 0
 $TMP = Join-Path ([System.IO.Path]::GetTempPath()) ('translate-' + [Guid]::NewGuid().ToString('N'))
 [void][System.IO.Directory]::CreateDirectory($TMP)
@@ -901,13 +942,16 @@ try {
       }
 
       Info "$base  [$fileEngine]"
-      $srcSha = Get-Sha256 $srcAbs
+      # Hash and translate the same snapshot, even if the source is edited.
+      $snapshot = Join-Path $TMP "source.$extLc"
+      [System.IO.File]::Copy($srcAbs, $snapshot, $true)
+      $srcSha = Get-Sha256 $snapshot
 
       # Plain text has to be UTF-8 for either engine. Convert a copy, never the original.
       $srcEncoding = 'n/a'
       $clean = ''
       if ($isText) {
-        $bytes = [System.IO.File]::ReadAllBytes($srcAbs)
+        $bytes = [System.IO.File]::ReadAllBytes($snapshot)
         if ($ENCODING) {
           # not $encoding: PowerShell names ignore case, so that is $ENCODING
           $codec = Get-NamedEncoding $ENCODING
@@ -924,6 +968,12 @@ try {
         }
         $clean = ConvertTo-CleanText $decoded
       }
+      $inputFile = $snapshot
+      if ($isText) {
+        $inputFile = Join-Path $TMP 'input'
+        [System.IO.File]::WriteAllBytes($inputFile, $UTF8.GetBytes($clean))
+      }
+      $inputSha = Get-Sha256 $inputFile
 
       $engineOptions = ''
       if ($fileEngine -eq 'gemma') {
@@ -945,21 +995,36 @@ try {
 
       # true if the sidecar records this exact source, engine and language pair
       $alreadyDone = $false
-      if (-not $FORCE -and [System.IO.File]::Exists($sidecar)) {
-        $prior = ConvertFrom-JsonBytes ([System.IO.File]::ReadAllBytes($sidecar))
-        $alreadyDone = ((Get-Prop $prior 'source_sha256') -ceq $srcSha) -and
-          ((Get-Prop $prior 'engine_digest') -ceq $script:EngineDigest) -and
-          ((Get-Prop $prior 'source_lang') -ceq $srcLang) -and
-          ((Get-Prop $prior 'target_lang') -ceq $TO)
+      if (-not $FORCE -and $script:EngineDigest -cne 'unknown') {
+        foreach ($candidate in [System.IO.Directory]::GetFiles($destDir)) {
+          if (-not $candidate.StartsWith((Join-Path $destDir "$stem.$TO.$fileEngine"), [System.StringComparison]::Ordinal) -or
+              -not $candidate.EndsWith("$suffix.provenance.json", [System.StringComparison]::Ordinal)) { continue }
+          $priorOutput = $candidate.Substring(0, $candidate.Length - '.provenance.json'.Length)
+          if (-not [System.IO.File]::Exists($priorOutput) -or (Test-Path -LiteralPath "$priorOutput.lock")) { continue }
+          try {
+            $prior = ConvertFrom-JsonBytes ([System.IO.File]::ReadAllBytes($candidate))
+            $alreadyDone = ((Get-Prop $prior 'tool') -ceq $TOOL) -and
+              ((Get-Prop $prior 'source_sha256') -ceq $srcSha) -and
+              ((Get-Prop $prior 'input_sha256') -ceq $inputSha) -and
+              ((Get-Prop $prior 'source_encoding') -ceq $srcEncoding) -and
+              ((Get-Prop $prior 'engine') -ceq $fileEngine) -and
+              ((Get-Prop $prior 'engine_digest') -ceq $script:EngineDigest) -and
+              ((Get-Prop $prior 'engine_options') -ceq $engineOptions) -and
+              ((Get-Prop $prior 'source_lang') -ceq $srcLang) -and
+              ((Get-Prop $prior 'target_lang') -ceq $TO) -and
+              ((Get-Prop $prior 'output_file') -ceq [System.IO.Path]::GetFileName($priorOutput)) -and
+              ((Get-Prop $prior 'output_sha256') -ceq (Get-Sha256 $priorOutput))
+          } catch { $alreadyDone = $false }
+          if ($alreadyDone) { $out = $priorOutput; break }
+        }
       }
       if ($alreadyDone) {
         Info "    already translated with this engine, source unchanged: $out"
         continue
       }
-      if ([System.IO.File]::Exists($out) -or [System.IO.File]::Exists($sidecar)) {
-        $out = Join-Path $destDir "$stem.$TO.$fileEngine.$(Get-UtcStamp "yyyyMMdd'T'HHmmss'Z'")$suffix"
-        $sidecar = "$out.provenance.json"
-      }
+      $reservation = Reserve-Output $destDir "$stem.$TO.$fileEngine" $suffix
+      $out = $reservation.Path
+      $sidecar = "$out.provenance.json"
 
       $workOut = Join-Path $TMP 'result'
       if ([System.IO.File]::Exists($workOut)) { [System.IO.File]::Delete($workOut) }
@@ -967,28 +1032,25 @@ try {
       if ($fileEngine -eq 'gemma') {
         $translated = Invoke-Gemma $clean $TO
         [System.IO.File]::WriteAllBytes($workOut, $UTF8.GetBytes($translated))
-      } elseif ($isText) {
-        $upload = Join-Path $TMP 'input'
-        [System.IO.File]::WriteAllBytes($upload, $UTF8.GetBytes($clean))
-        Invoke-LibreFile $upload $extLc $TO $workOut
       } else {
-        Invoke-LibreFile $srcAbs $ext $TO $workOut
+        Invoke-LibreFile $inputFile $extLc $TO $workOut
       }
       if ((New-Object System.IO.FileInfo($workOut)).Length -eq 0) { Die "${base}: the translation came back empty" }
-      [System.IO.File]::Move($workOut, $out)
+      Publish-New $workOut $out
+      $ownedOutput = $out
 
       if ($fileEngine -eq 'gemma') {
         # Invoke-Gemma has already compared paragraph counts piece by piece
         $checkStatus = Test-DroppedText $clean $translated $TO '' $true
       } elseif ($isText -or $extLc -ceq 'srt') {
         $theirs = $clean
-        if (-not $isText) { $theirs = ConvertFrom-Bytes ([System.IO.File]::ReadAllBytes($srcAbs)) $UTF8_STRICT }
+        if (-not $isText) { $theirs = ConvertFrom-Bytes ([System.IO.File]::ReadAllBytes($snapshot)) $UTF8_STRICT }
         $ours = ConvertFrom-Bytes ([System.IO.File]::ReadAllBytes($out)) $UTF8_STRICT
         if ($null -eq $theirs -or $null -eq $ours) { $checkStatus = "not checked: the text isn't valid UTF-8" }
         else { $checkStatus = Test-DroppedText $theirs $ours $TO '' $false }
       } elseif ($extLc -ceq 'docx') {
         $theirs = $null
-        try { $theirs = Get-DocxText $srcAbs; $ours = Get-DocxText $out } catch { $theirs = $null }
+        try { $theirs = Get-DocxText $snapshot; $ours = Get-DocxText $out } catch { $theirs = $null }
         if ($null -eq $theirs) { $checkStatus = "not checked: couldn't read the text of the .docx file" }
         else { $checkStatus = Test-DroppedText $theirs $ours $TO 'paragraph' $false }
       } else {
@@ -1001,10 +1063,11 @@ try {
       if ($script:Detected) { $detectedText = 'true' }
       $record = @(
         '{'
-        ('  "tool": "airgapped-translation translate.ps1 v{0}",' -f $VERSION)
+        ('  "tool": "{0}",' -f $TOOL)
         ('  "translated_at_utc": "{0}",' -f (Get-UtcStamp "yyyy-MM-dd'T'HH:mm:ss'Z'"))
         ('  "source_file": "{0}",' -f (ConvertTo-JsonBody $srcAbs))
         ('  "source_sha256": "{0}",' -f $srcSha)
+        ('  "input_sha256": "{0}",' -f $inputSha)
         ('  "source_encoding": "{0}",' -f (ConvertTo-JsonBody $srcEncoding))
         ('  "source_lang": "{0}",' -f (ConvertTo-JsonBody $srcLang))
         ('  "source_lang_detected": {0},' -f $detectedText)
@@ -1021,7 +1084,14 @@ try {
         ('  "warnings": [{0}]' -f $warningList)
         '}'
       )
-      [System.IO.File]::WriteAllBytes($sidecar, $UTF8.GetBytes(($record -join $LF) + $LF))
+      $stagedSidecar = Join-Path $TMP 'provenance.json'
+      [System.IO.File]::WriteAllBytes($stagedSidecar, $UTF8.GetBytes(($record -join $LF) + $LF))
+      Publish-New $stagedSidecar $sidecar
+      $ownedSidecar = $sidecar
+      $reservation.Stream.Dispose()
+      [System.IO.File]::Delete($reservation.Lock)
+      $reservation = $null
+      $ownedOutput = ''; $ownedSidecar = ''
       Info "    wrote $out"
       if ($script:Warnings.Count -gt 0) { Info "    warnings were recorded in $([System.IO.Path]::GetFileName($sidecar))" }
     }
@@ -1031,6 +1101,9 @@ try {
   if ($script:Died) { Info "error: $($_.Exception.Message)" }
   else { Info "error: $($_.Exception.Message)$([Environment]::NewLine)$($_.ScriptStackTrace)" }
 } finally {
+  if ($ownedOutput) { [System.IO.File]::Delete($ownedOutput) }
+  if ($ownedSidecar) { [System.IO.File]::Delete($ownedSidecar) }
+  if ($null -ne $reservation) { $reservation.Stream.Dispose(); [System.IO.File]::Delete($reservation.Lock) }
   try { [System.IO.Directory]::Delete($TMP, $true) } catch { }
 }
 exit $exitCode

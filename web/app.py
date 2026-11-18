@@ -27,6 +27,7 @@ import threading
 import time
 import uuid
 import warnings
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from urllib.parse import urlsplit
 
@@ -40,7 +41,7 @@ import check  # noqa: E402
 import extract  # noqa: E402
 import gemma  # noqa: E402
 
-VERSION = "2"
+VERSION = "3"
 HERE = os.path.dirname(os.path.abspath(__file__))
 # Which build of these files this is; written by whatever packaged them
 try:
@@ -266,45 +267,118 @@ def read_json(name):
         return None
 
 
-def already_done(source_sha, engine_digest, source_lang, target_lang):
+def result_name(name):
+    return isinstance(name, str) and name not in ("", ".", "..") and not any(c in name for c in "/\\\x00")
+
+
+def valid_result(side):
+    """Only a complete result whose recorded files still match their hashes."""
+    output = side.get("output_file")
+    if not result_name(output):
+        return False
+    if os.path.lexists(os.path.join(DATA_DIR, output + ".lock")):
+        return False
+    files = [(output, side.get("output_sha256"))]
+    if side.get("source_text_file"):
+        files.append((side["source_text_file"], side.get("source_text_sha256")))
+    try:
+        return all(
+            result_name(name) and digest and sha256_file(os.path.join(DATA_DIR, name)) == digest
+            for name, digest in files
+        )
+    except OSError:
+        return False
+
+
+def already_done(
+    source_sha, engine_digest, source_lang, target_lang, input_sha, encoding, engine, options, source_format
+):
     """The output of an earlier run on this exact source, engine and language pair."""
     for name in sorted(provenance_files(), reverse=True):
         side = read_json(name)
         if (
-            side
+            isinstance(side, dict)
+            and engine_digest != "unknown"
+            and side.get("tool") == TOOL
             and side.get("source_sha256") == source_sha
             and side.get("engine_digest") == engine_digest
             and side.get("source_lang") == source_lang
             and side.get("target_lang") == target_lang
-            and os.path.isfile(os.path.join(DATA_DIR, side.get("output_file", "")))
+            and side.get("input_sha256") == input_sha
+            and side.get("source_encoding") == encoding
+            and side.get("engine") == engine
+            and side.get("engine_options") == options
+            and side.get("source_format") == source_format
+            and valid_result(side)
         ):
             return side["output_file"]
     return None
 
 
-def free_name(base, ext):
-    """base.ext, or base.<time>.ext when that is taken, as the helper does.
-    A sidecar on its own counts as taken: its translation was moved, not unmade."""
-    def taken(name):
-        return any(
-            os.path.exists(os.path.join(DATA_DIR, name + tail)) for tail in ("", ".provenance.json")
-        )
-
+@contextmanager
+def reserve_result(base, ext, with_source=False):
+    """Reserve the whole result with an exclusive file, also on exFAT.
+    A crash may leave a lock or incomplete files; later runs leave them alone."""
     dot_ext = "." + ext if ext else ""
     name = base + dot_ext
     serial = 0
-    while taken(name):
+    while True:
+        lock = os.path.join(DATA_DIR, name + ".lock")
+        try:
+            with open(lock, "x"):
+                pass
+        except FileExistsError:
+            pass
+        else:
+            source = name[:-4] + ".source-text.txt" if with_source else None
+            names = [name, name + ".provenance.json"] + ([source] if source else [])
+            if not any(os.path.lexists(os.path.join(DATA_DIR, n)) for n in names):
+                break
+            os.unlink(lock)
         stamp = utc_now(compact=True) + (f"-{serial}" if serial else "")
         name = f"{base}.{stamp}{dot_ext}"
         serial += 1
-    return name
+    try:
+        yield name, source
+    finally:
+        os.unlink(lock)
 
 
 def write_new(name, data):
     """Write a file that must not already exist."""
     mode = "xb" if isinstance(data, bytes) else "x"
-    with open(os.path.join(DATA_DIR, name), mode, **({} if "b" in mode else {"encoding": "utf-8"})) as handle:
-        handle.write(data)
+    handle = open(os.path.join(DATA_DIR, name), mode, **({} if "b" in mode else {"encoding": "utf-8"}))
+    try:
+        with handle:
+            handle.write(data)
+    except BaseException:
+        os.unlink(handle.name)
+        raise
+
+
+def save_result(base, ext, data, upload, source_text=None, **fields):
+    """Publish the provenance last. Locked or incomplete results cannot be reused."""
+    with reserve_result(base, ext, source_text is not None) as (output, source):
+        written = []
+        try:
+            write_new(output, data)
+            written.append(output)
+            if source is not None:
+                write_new(source, source_text)
+                written.append(source)
+                fields["source_text_file"] = source
+            if fields["engine"] == "libre":
+                checked, found = check_libre(
+                    upload, ext.lower(), fields.pop("check_source"), output,
+                    fields["source_lang"], fields["target_lang"],
+                )
+                fields.update(dropped_text_check=checked, warnings=found)
+            write_provenance(output, upload, **fields)
+        except BaseException:
+            for name in written:
+                os.unlink(os.path.join(DATA_DIR, name))
+            raise
+    return output
 
 
 def shown_text(name):
@@ -320,8 +394,13 @@ def shown_text(name):
 
 def load_result(output):
     side = read_json(output + ".provenance.json")
-    if side is None or side.get("output_file") != output:
+    if not isinstance(side, dict) or side.get("output_file") != output:
         return None
+    if not valid_result(side):
+        raise UserError(
+            "This translation or its saved source text is missing or has changed since it was made. "
+            "Translate the document again to make a new result."
+        )
     result = {"output": output, "folder": HOST_DATA_DIR, "provenance": side}
     if output.endswith(".txt"):
         result["text"] = shown_text(output)
@@ -365,9 +444,13 @@ def run_gemma(job, upload):
     if digest is None:
         raise UserError(f"The model '{job['model']}' isn't installed in Ollama.")
     set_job(job, source_used=source, detected=detected, confidence=confidence)
+    input_sha = hashlib.sha256(text.encode("utf-8")).hexdigest()
+    options = f"temperature=0 num_ctx={gemma.NUM_CTX} piece_bytes={gemma.SOFT}-{gemma.HARD}"
 
     if not job["force"]:
-        earlier = already_done(upload["sha256"], digest, source, job["target"])
+        earlier = already_done(
+            upload["sha256"], digest, source, job["target"], input_sha, encoding, "gemma", options, ext
+        )
         if earlier:
             return earlier, True
 
@@ -390,13 +473,9 @@ def run_gemma(job, upload):
 
     stem, _ = split_name(upload["name"])
     base = stem if ext in extract.TEXT_TYPES or not ext else f"{stem}.{ext}"
-    output = free_name(f"{base}.{job['target']}.gemma", "txt")
-    source_text = output[: -len(".txt")] + ".source-text.txt"
-    write_new(output, translation)
-    write_new(source_text, text)
-    write_provenance(
-        output,
-        upload,
+    output = save_result(
+        f"{base}.{job['target']}.gemma", "txt", translation, upload, source_text=text,
+        input_sha256=input_sha,
         source_encoding=encoding,
         source_lang=source,
         detected=detected,
@@ -405,11 +484,10 @@ def run_gemma(job, upload):
         engine="gemma",
         engine_detail=f"{job['model']} via Ollama",
         engine_digest=digest,
-        engine_options=f"temperature=0 num_ctx={gemma.NUM_CTX} piece_bytes={gemma.SOFT}-{gemma.HARD}",
+        engine_options=options,
         pieces=pieces,
         dropped_text_check=checked,
         warnings=warns + found,
-        source_text_file=source_text,
         extraction=method,
         extraction_notes=notes,
     )
@@ -420,11 +498,6 @@ def run_libre(job, upload):
     ext = upload["ext"].lower()
     detail = f"LibreTranslate {LT_VERSION} (image {LT_IMAGE})"
     source = job["source"]
-    if not job["force"]:
-        earlier = already_done(upload["sha256"], LT_IMAGE_ID, source, job["target"])
-        if earlier:
-            return earlier, True
-
     # Plain text has to be UTF-8 for LibreTranslate. Convert a copy, never the original.
     encoding = "n/a"
     sent = upload["path"]
@@ -440,6 +513,13 @@ def run_libre(job, upload):
         tidy.close()
         sent = tidy.name
     try:
+        input_sha = sha256_file(sent)
+        if not job["force"]:
+            earlier = already_done(
+                upload["sha256"], LT_IMAGE_ID, source, job["target"], input_sha, encoding, "libre", "", ext
+            )
+            if earlier:
+                return earlier, True
         with open(sent, "rb") as handle:
             reply = lt(
                 "POST",
@@ -461,12 +541,10 @@ def run_libre(job, upload):
         raise UserError("The translation came back empty.")
 
     stem, _ = split_name(upload["name"])
-    output = free_name(f"{stem}.{job['target']}.libre", upload["ext"])
-    write_new(output, body)
-    checked, found = check_libre(upload, ext, text, output, source, job["target"])
-    write_provenance(
-        output,
-        upload,
+    output = save_result(
+        f"{stem}.{job['target']}.libre", upload["ext"], body, upload,
+        input_sha256=input_sha,
+        check_source=text,
         source_encoding=encoding,
         source_lang=source,
         detected=False,
@@ -477,8 +555,6 @@ def run_libre(job, upload):
         engine_digest=LT_IMAGE_ID,
         engine_options="",
         pieces=0,
-        dropped_text_check=checked,
-        warnings=found,
     )
     return output, False
 
@@ -516,6 +592,8 @@ def write_provenance(output, upload, **fields):
         "source_file": upload["name"],
         "source_origin": "pasted into the web page" if upload["pasted"] else "uploaded to the web page",
         "source_sha256": upload["sha256"],
+        "source_format": upload["ext"].lower(),
+        "input_sha256": fields.pop("input_sha256"),
         "source_encoding": fields.pop("source_encoding"),
         "source_lang": fields.pop("source_lang"),
         "source_lang_detected": fields.pop("detected"),
@@ -769,7 +847,10 @@ def history():
 
 @app.get("/api/result")
 def result():
-    found = load_result(safe_name(request.args.get("output", "")))
+    output = request.args.get("output", "")
+    if not result_name(output):
+        abort(404)
+    found = load_result(output)
     if found is None:
         abort(404)
     return found
