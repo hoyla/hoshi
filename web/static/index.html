@@ -13,7 +13,10 @@
     <h1>Offline translation</h1>
     <p class="sub">Runs on this computer. Nothing you translate leaves it.</p>
   </div>
-  <ul id="status" aria-label="Engines"></ul>
+  <div class="tools">
+    <ul id="status" aria-label="Engines"></ul>
+    <button type="button" id="help-open" class="linkish">What is this?</button>
+  </div>
 </header>
 
 <main>
@@ -88,7 +91,7 @@
 
   <section id="history" hidden>
     <h2>Earlier translations</h2>
-    <p class="hint">Everything translated here is kept in <code id="folder"></code>, each with a provenance file recording how it was made.</p>
+    <p class="hint">Everything translated here is kept in <code id="folder"></code>, each with a provenance file recording how it was made. <button type="button" id="folder-copy" class="linkish">Copy this location</button>, then in Finder press ⌘⇧G and paste to open the folder.</p>
     <table>
       <thead><tr><th>Translation</th><th>From</th><th>Into</th><th>Engine</th><th>When (UTC)</th><th></th></tr></thead>
       <tbody id="history-rows"></tbody>
@@ -96,6 +99,73 @@
   </section>
 </main>
 <footer id="about" class="hint"></footer>
+
+<dialog id="help">
+  <article>
+    <button type="button" id="help-close" class="close" aria-label="Close">&times;</button>
+    <h2>What is this?</h2>
+    <p>A tool for translating documents on this computer alone. It needs no
+    internet and sends nothing anywhere: the document, the translation and
+    everything about them stay on this Mac. It is meant for material that must
+    not leave the newsroom.</p>
+
+    <h3>Two translators, and which to pick</h3>
+    <p>It offers two, because they are good at different things. Pick on the
+    page whichever suits the document.</p>
+    <ul>
+      <li><strong>TranslateGemma</strong> gives the better translation, as plain
+      text without the document's layout. Use it when the exact words matter.
+      It runs in the <strong>Ollama</strong> app.</li>
+      <li><strong>LibreTranslate</strong> keeps the layout and hands back the
+      same kind of file, quickly &mdash; enough to see what a document is about.
+      It is weak on Arabic and Hebrew. It runs in <strong>Docker Desktop</strong>.</li>
+    </ul>
+
+    <h3>If a translator says &ldquo;not available&rdquo;</h3>
+    <p id="help-status" class="box"></p>
+    <p>What to do:</p>
+    <ul>
+      <li><strong>TranslateGemma not available.</strong> The Ollama app isn't
+      running. Open Ollama from Applications, wait a few seconds, then reload
+      this page.</li>
+      <li><strong>The page won't open at all.</strong> This page itself runs in
+      Docker Desktop, so if Docker is off there is nothing to open. (You are
+      reading this, so Docker is running on this computer.) If a colleague's
+      page won't open, Docker Desktop on their computer isn't running: they
+      should open Docker Desktop from Applications, wait until it says it is
+      running, then open the page again. A colleague whose tool is working can
+      translate for them in the meantime.</li>
+    </ul>
+
+    <h3>What is kept, and what is not</h3>
+    <ul>
+      <li>Every translation is saved in <code id="help-folder"></code>
+      (<button type="button" id="help-folder-copy" class="linkish">copy</button>,
+      then in Finder press ⌘⇧G and paste to open it), each
+      with a small record of how it was made. These are kept until you delete
+      them yourself; the tool never removes or overwrites one.</li>
+      <li>The document you upload is held only in memory while it is worked on.
+      It is never written to disk, and it is gone within a few hours or as soon
+      as Docker restarts.</li>
+    </ul>
+
+    <h3>Putting this on another offline computer</h3>
+    <p>The installer is built on a Mac that <em>does</em> have internet, then
+    carried across &mdash; it cannot be built on an offline computer. In short:</p>
+    <ol>
+      <li>On a connected Mac, get the project's code (clone its repository).</li>
+      <li>Build the installer bundle by following the repository's README (the
+      <code>build-bundle.sh</code> script).</li>
+      <li>Copy the finished bundle onto a USB stick.</li>
+      <li>Copy it from the stick onto the offline computer and run
+      <code>install.sh</code>, as the bundle's own <code>README.txt</code>
+      describes.</li>
+    </ol>
+
+    <p class="hint" id="help-build"></p>
+  </article>
+</dialog>
+
 <script src="/static/app.js"></script>
 </body>
 </html>

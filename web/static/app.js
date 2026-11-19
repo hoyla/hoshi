@@ -53,6 +53,18 @@ async function start() {
   show("model-field", false);
   $("folder").textContent = config.folder;
   $("about").textContent = config.tool;
+  $("help-folder").textContent = config.folder;
+  const down = !config.gemma.ok || !config.libre.ok;
+  const message = !config.gemma.ok && config.gemma.error ? config.gemma.error
+    : !config.libre.ok ? "LibreTranslate isn't answering."
+      : "Both translators are ready on this computer.";
+  $("help-status").className = "box " + (down ? "bad" : "good");
+  $("help-status").replaceChildren(
+    el("span", { className: "msg-label" }, down ? "The page is reporting:" : "Right now:"),
+    el("span", {}, message),
+  );
+  $("help-build").textContent = "Version " + config.version
+    + (config.build ? " \u2014 " + config.build : " \u2014 running from source, no build recorded.");
   loadHistory();
 }
 
@@ -65,6 +77,27 @@ function selectTab(text) {
 }
 $("tab-file").onclick = () => selectTab(false);
 $("tab-text").onclick = () => selectTab(true);
+
+$("help-open").onclick = () => $("help").showModal();
+$("help-close").onclick = () => $("help").close();
+$("help").addEventListener("click", (e) => { if (e.target === $("help")) $("help").close(); });
+
+// Clicking a path can't open Finder from a page served over http, so offer the
+// next best thing: copy it for Finder's Go to Folder (Cmd-Shift-G).
+function wireCopy(buttonId, getText) {
+  const btn = $(buttonId);
+  if (!btn) return;
+  btn.onclick = async () => {
+    try {
+      await navigator.clipboard.writeText(getText());
+      const was = btn.textContent;
+      btn.textContent = "Copied \u2713";
+      setTimeout(() => { btn.textContent = was; }, 1500);
+    } catch { /* clipboard blocked; the path stays on screen to copy by hand */ }
+  };
+}
+wireCopy("folder-copy", () => config.folder);
+wireCopy("help-folder-copy", () => config.folder);
 
 $("file").onchange = () => { if ($("file").files[0]) inspect({ file: $("file").files[0] }); };
 $("use-text").onclick = () => inspect({ text: $("text").value });
