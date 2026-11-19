@@ -8,6 +8,9 @@ network. A Windows PC needs Docker Desktop already. A Mac doesn't, because the
 bundle carries Docker Desktop's installer for it. One bundle serves both kinds
 of machine, and every model is inside it.
 
+<img alt="Screenshot 2026-11-19 at 14 12 24" src="https://github.com/user-attachments/assets/a7a1e69a-212d-43b8-9594-927f976bb1ea" />
+
+
 | | LibreTranslate | TranslateGemma 12B |
 |---|---|---|
 | Runs in | Docker | Ollama, natively on macOS or Windows |
