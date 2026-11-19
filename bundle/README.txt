@@ -5,12 +5,18 @@ Two translation engines that run entirely on one computer, a Mac or a
 Windows PC. Nothing leaves the machine and nothing here needs a network.
 Everything they need, language models included, is in this folder.
 
-  LibreTranslate   A web page at http://127.0.0.1:5050. Translates pasted text
-                   and whole documents, keeping their formatting. Fast.
-                   Quality is good enough to get the gist.
+  LibreTranslate   Translates pasted text and whole documents, keeping their
+                   formatting. Fast. Quality is good enough to get the gist.
 
   TranslateGemma   A Google translation model run by the Ollama app.
-                   Noticeably better translations. Plain text only. Slower.
+                   Noticeably better translations. Gives back plain text.
+                   Slower.
+
+On a Mac you use both from one web page, http://127.0.0.1:5080, which checks
+each translation for dropped text and keeps a record of how it was made. On
+Windows, LibreTranslate has a web page of its own at http://127.0.0.1:5050
+and TranslateGemma is used from the command line. The command line works on
+both.
 
 MANIFEST.txt lists exactly what this bundle contains: versions, model digests
 and the test translations made when it was built. NOTICE.txt says who made
@@ -104,8 +110,9 @@ folder into the Terminal window, and press Return. Then run:
 
 It checks the files, loads LibreTranslate into Docker, copies Ollama.app into
 /Applications and the model into ~/.ollama/models, and puts the translate.sh
-helper and some test files in ~/translation-tools. It finishes by running a
-test translation through each engine. Allow 15 to 30 minutes. It is safe to run again.
+helper and some test files in ~/translation-tools. It starts the translation
+page, runs a test translation through each engine, and finishes by opening
+the page in your browser. Allow 15 to 30 minutes. It is safe to run again.
 
 If the Mac has no Docker
     The installer says so and waits for you to press Return. It then
@@ -128,6 +135,10 @@ install-DATE.log, in ~/translation-tools. If an install fails, that file
 holds everything the installer printed.
 
 Run ./install.sh --help for options (different port, skip one engine, etc).
+
+A newer translation page may reach you later as a small folder of its own.
+Its README.txt says how to install it; it replaces the page and changes
+nothing else.
 
 
 INSTALLING ON WINDOWS
@@ -157,24 +168,36 @@ this folder and run:   install.cmd --help
 
 USING IT
 --------
-On the translation page (only on a Mac where it has been added)
-    The page is a small, separate update, installed after this bundle with
-    its own installer, install-web.sh. If this Mac has it, open
-    http://127.0.0.1:5080. It translates a document or pasted text with
-    either engine, takes the text out of Word files and PDFs for
-    TranslateGemma itself, makes the checks described under "How far to
-    trust it", and keeps every translation, with a record of how it was
-    made, in ~/translation-tools/translations. The update's own README.txt
-    says more. The rest of this section is about the two ways every
-    installation has.
+On the translation page (Mac)
+    Open http://127.0.0.1:5080 in a browser. Choose a document or paste
+    text, choose TranslateGemma or LibreTranslate, choose the languages,
+    and press Translate. Before you press it, the page says what the
+    engine you chose is good and bad at for that document.
 
-In LibreTranslate's own page (Mac or Windows)
+    LibreTranslate gives back a document of the same kind, with its
+    formatting. TranslateGemma gives back plain text: the page takes the
+    text out of a .docx, .odt, .pdf or .html file itself and saves exactly
+    what it sent to the model beside the translation.
+
+    Every translation is kept in ~/translation-tools/translations with a
+    .provenance.json file recording how it was made, and the page lists
+    them. The document you chose is not copied there; the record holds
+    its name and its SHA-256. The page makes the checks described under
+    "How far to trust it" and shows what they find.
+
+    The page answers only on this Mac. Other computers can't reach it.
+
+In LibreTranslate's own page (Windows)
     Open http://127.0.0.1:5050. Paste text, or use "Translate Files" for
     .docx .pptx .odt .odp .pdf .html .epub .srt .txt. Before translating
     a PDF, read "Languages and file types that give trouble" below.
 
-From the command line (without the translation page, this is the only way
-to get the better engine and a record of what was done)
+    This page keeps no record of a translation and makes no check of one.
+    That is why a Mac with the translation page has it turned off: there,
+    http://127.0.0.1:5050 shows "Not Found" and nothing is wrong.
+
+From the command line (Mac or Windows; on Windows the only way to get the
+better engine, the checks and a record of what was done)
 
     On a Mac, in Terminal:
 
@@ -246,6 +269,14 @@ Each language's passage is different; they are not translations of one
 another. README.md in the folder says where each came from. They are
 published under the Creative Commons BY-SA 4.0 licence.
 
+On a Mac, on the translation page:
+
+    Press "Choose a document". In the window that opens, press
+    Command-Shift-G, type ~/translation-tools/test-files and press
+    Return. Translate russian.docx and then arabic.pdf into English with
+    LibreTranslate, and arabic.docx with TranslateGemma. The translations
+    go to ~/translation-tools/translations, not beside the originals.
+
 On a Mac, in Terminal:
 
     cd ~/translation-tools/test-files
@@ -268,7 +299,7 @@ On Windows, in Command Prompt:
 
 The first two commands of each set use LibreTranslate and give back a Word
 file and a PDF. The last uses TranslateGemma and gives back plain text. The
-translations appear in the same folder, beside the originals.
+helper's translations appear in the same folder, beside the originals.
 
 What came back in testing in November 2026, with LibreTranslate 1.9.6
 (translating into English; the English file was translated into French):
@@ -323,14 +354,20 @@ PDFs
 
       1. If you have the same document as a Word file or as text, translate
          that and leave the PDF alone.
-      2. Otherwise copy the text out. Open the PDF, select all of it, copy,
-         and paste into a new plain-text file (on a Mac, TextEdit with
-         Format > Make Plain Text; on Windows, Notepad). Save it with a
-         name ending .txt and translate that. Copying can itself muddle
-         right-to-left text, and this was not tested, so compare a few
-         lines with the PDF before you rely on it.
-      3. Use the translated PDF only to see what a left-to-right document
-         is about.
+      2. On a Mac, choose the PDF on the translation page and translate it
+         with TranslateGemma. The page takes the text out of the PDF and
+         gives the model whole paragraphs. With Arabic and Hebrew the text
+         that comes out of a PDF is often damaged, with letters swapped
+         inside words and punctuation at the wrong end of a line: in the
+         one Arabic PDF tested, the translation lost a heading and was
+         vaguer than the translation of the same text from Word.
+      3. On Windows, copy the text out. Open the PDF, select all of it,
+         copy, and paste into Notepad. Save it with a name ending .txt and
+         translate that. Copying can itself muddle right-to-left text, and
+         this was not tested, so compare a few lines with the PDF before
+         you rely on it.
+      4. Use LibreTranslate's translated PDF only to see what a
+         left-to-right document is about.
 
     A scanned PDF is a picture of each page and holds no text. If you
     cannot select words in it with the mouse, nothing here can read it:
@@ -344,8 +381,9 @@ Arabic and Hebrew
     intact.
 
     So for these two languages use TranslateGemma for anything you will
-    act on: save the document as plain text (the next section shows how)
-    and translate the .txt file. Keep LibreTranslate for a first look.
+    act on. On the translation page, choose it for the document. From the
+    command line, save the document as plain text (the next section shows
+    how) and translate the .txt file. Keep LibreTranslate for a first look.
 
     A Word file translated from Arabic or Hebrew keeps its right-to-left
     layout, so the English sits against the right margin with its full
@@ -385,8 +423,9 @@ paragraphs down to a single sentence each.
 TranslateGemma translated both in full, but those were two documents, and
 TranslateGemma can drop text too. Never take either engine's output as proof
 that something is absent from a document. For anything that matters, put the
-text through both and compare. To get plain text out of a Word document on a
-Mac:
+text through both and compare. On the translation page, translate the
+document once with each engine. The command-line helper gives TranslateGemma
+plain text only; to get plain text out of a Word document on a Mac:
 
     textutil -convert txt -encoding UTF-8 contract.docx
 
@@ -409,8 +448,9 @@ models produced about the same amount of text. That is one bad file out of
 five, on one computer. Until someone has compared them properly, use 12b,
 and check anything 27b produces against it.
 
-If the helper prints a warning, read it. It makes two checks, and records
-what they find in the .provenance.json file.
+If the helper prints a warning, or the translation page shows one, read it.
+Both make the same two checks, and record what they find in the
+.provenance.json file.
 
 With TranslateGemma, on a Mac or on Windows, it checks each piece for signs
 that the model dropped or merged text: a different number of paragraphs or
@@ -430,8 +470,9 @@ than it should be, or somewhat shorter and missing a sentence:
 Go to that paragraph in the original, and try the other engine on it. The
 provenance file has a line saying what was compared.
 
-With LibreTranslate, this check sees more when you give --from than when
-the language is left to be detected. If you know the language, give it.
+With LibreTranslate, this check sees more when you give the language (--from,
+or "From" on the page) than when it is left to be detected. If you know the
+language, give it.
 
 What this second check does not do:
 
@@ -454,8 +495,8 @@ A translation with no warnings can still be wrong.
 
 AFTER A RESTART
 ---------------
-Start Docker Desktop; LibreTranslate comes back by itself, and so does the
-translation page if it was added.
+Start Docker Desktop; LibreTranslate comes back by itself, and on a Mac so
+does the translation page.
 
 For TranslateGemma, Ollama has to be running. On a Mac, open Ollama from
 Applications. On Windows it normally starts when you sign in (a llama icon
@@ -515,6 +556,19 @@ On a Mac
 "permission denied" when running ./install.sh
     Run   bash install.sh   instead.
 
+"port 5080, which the translation page uses, is already in use"
+    Run the installer again with --web-port 5081. The page is then at
+    http://127.0.0.1:5081.
+
+The translation page says an engine is "not available"
+    For TranslateGemma, open Ollama from Applications. For LibreTranslate,
+    open Docker Desktop and see that the libretranslate container is
+    running. Then reload the page.
+
+http://127.0.0.1:5050 shows "Not Found"
+    Nothing is wrong. LibreTranslate's own page is turned off on a Mac
+    that has the translation page; use http://127.0.0.1:5080.
+
 On Windows
 
 The window says running scripts is disabled, or closes at once
@@ -552,17 +606,12 @@ REMOVING IT
 -----------
 On a Mac
 
-    docker rm -f libretranslate
+    docker rm -f translation-web libretranslate
     docker image rm $(grep '^LT_IMAGE=' ~/translation-tools/bundle.env | cut -d= -f2)
 
-    If the translation page was added, also run:
-
-        docker rm -f translation-web
-
-    and move ~/translation-tools/translations somewhere else if you want
-    to keep what it translated.
-
-    Then move Ollama.app to the Trash and delete ~/translation-tools.
+    Move ~/translation-tools/translations somewhere else if you want to
+    keep what the page translated. Then move Ollama.app to the Trash and
+    delete ~/translation-tools.
     ~/.ollama holds the models. Delete it only if this Mac had no Ollama
     before: it holds every Ollama model on the Mac, not just these.
 
@@ -588,7 +637,8 @@ On Windows, in Command Prompt
 WHO MADE THIS, AND PASSING IT ON
 --------------------------------
 This bundle was built with Hoshi, https://github.com/hoyla/hoshi. Hoshi is
-the installers, the translate helpers and the checks they make. It is free
+the installers, the translation page, the translate helpers and the checks
+they make. It is free
 software under the GNU Affero General Public License, version 3, which is in
 LICENSE.txt.
 

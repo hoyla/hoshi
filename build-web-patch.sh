@@ -1,7 +1,8 @@
 #!/bin/bash
-# Build the small update that adds the translation web page to a Mac where the
-# full bundle is already installed. A few hundred kilobytes: the page runs on
-# the LibreTranslate image and the models that Mac already has.
+# Build the small update that puts the translation web page on a Mac where a
+# bundle is already installed: a newer page than the bundle carried, or the
+# page itself if the bundle had none. A few hundred kilobytes: the page runs
+# on the LibreTranslate image and the models that Mac already has.
 #
 #   ./build-web-patch.sh [--out DIR] [--allow-dirty]
 
@@ -37,27 +38,20 @@ python3 "$HERE/web/tests/test_parity.py" || die "web/gemma.py and bundle/transla
 BUILT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 [ -n "$OUT" ] || OUT="$HERE/dist/translation-web-$(date -u +%Y%m%d-%H%M)"
 [ ! -e "$OUT" ] || die "$OUT already exists"
-mkdir -p "$OUT/web/static"
+mkdir -p "$OUT"
 
-cp "$HERE/web/app.py" "$HERE/web/check.py" "$HERE/web/extract.py" "$HERE/web/gemma.py" "$OUT/web/"
-# The page runs the dropped-text check that translate.sh carries, not a copy
-# kept by hand: take it out of the helper as calibration/measure.sh does.
-sed -n "/^cat > \"\$TMP\/check.pl\" <<'PERL'\$/,/^PERL\$/p" "$HERE/bundle/translate.sh" | sed '1d;$d' > "$OUT/web/check.pl"
-[ -s "$OUT/web/check.pl" ] && perl -c "$OUT/web/check.pl" 2>/dev/null \
-  || die "couldn't take the dropped-text check out of bundle/translate.sh"
-cp "$HERE"/web/static/* "$OUT/web/static/"
-cp "$HERE/bundle/install-web.sh" "$OUT/"
+. "$HERE/web/assemble.sh"
+assemble_web "$HERE" "$OUT" "built $BUILT from commit $SOURCE_COMMIT${SOURCE_CHANGES:+ plus uncommitted changes}"
 cp "$HERE/LICENSE" "$OUT/LICENSE.txt"
 cp "$HERE/NOTICE" "$OUT/NOTICE.txt"
-chmod +x "$OUT/install-web.sh"
-echo "built $BUILT from commit $SOURCE_COMMIT${SOURCE_CHANGES:+ plus uncommitted changes}" > "$OUT/web/BUILD"
 
 cat > "$OUT/README.txt" <<TXT
 TRANSLATION WEB PAGE: an update for the offline translation bundle
 Built $BUILT from commit $SOURCE_COMMIT${SOURCE_CHANGES:+ plus uncommitted changes}
 
-This adds a web page for translating documents to a Mac where the offline
-translation bundle is ALREADY installed. It is small because it uses the
+This puts the translation page on a Mac where the offline translation bundle
+is ALREADY installed. It replaces the page the bundle's installer started,
+or adds the page if that bundle had none. It is small because it uses the
 LibreTranslate image and the TranslateGemma models that Mac already has.
 Nothing here changes those, the translate.sh helper, or any translation.
 
@@ -94,6 +88,11 @@ USING IT
 IF THE PAGE IS ALREADY INSTALLED
   Install this one the same way; it replaces the page and keeps the
   translations.
+
+IF THIS MAC ALSO HAS LIBRETRANSLATE'S OWN PAGE
+  A Mac whose bundle had no translation page has LibreTranslate's own at
+  http://127.0.0.1:5050, and this update leaves it there. That page keeps
+  no record of a translation and makes no check of one, so use this one.
 
 TO REMOVE IT
   docker rm -f translation-web

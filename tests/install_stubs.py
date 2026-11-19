@@ -57,16 +57,20 @@ elif command == "docker":
         print("sha256:moved-tag-image" if settings.get("tag_moved") and not args[-1].startswith("sha256:")
               else "sha256:test-loaded-image")
     elif args[:2] == ["container", "inspect"]:
-        if args[-1] == "installed-libre":
+        template = args[args.index("--format") + 1] if "--format" in args else ""
+        if ".Image" in template:
             if settings.get("libre_container_missing"):
                 fail("no such container")
             print("sha256:another-service-image" if settings.get("libre_image_changed") else "sha256:test-loaded-image")
             sys.exit(0)
-        if not state.get("container") and not settings.get("foreign_container"):
+        name = args[-1]
+        if name not in state.get("containers", []) and not settings.get("foreign_container"):
             fail("no such container")
         print("0" if settings.get("foreign_container") else "1")
     elif args[0] == "rm":
-        state["container"] = False
+        containers = state.setdefault("containers", [])
+        if args[-1] in containers:
+            containers.remove(args[-1])
         save()
     elif args[0] == "run":
         if settings.get("run_fails"):
@@ -74,7 +78,9 @@ elif command == "docker":
         if "--rm" in args:
             print("Filesystem 1M-blocks Used Available Use% Mounted\nfixture 100000 1000 99000 1% /")
         else:
-            state["container"] = True
+            containers = state.setdefault("containers", [])
+            if "--name" in args:
+                containers.append(args[args.index("--name") + 1])
             save()
             print("test-container-id")
     elif args[0] == "logs":

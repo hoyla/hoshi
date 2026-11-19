@@ -136,6 +136,8 @@ exit 0
 
 
 class InstallerCases:
+    web_name = None
+
     def test_install_copies_payload_and_records_actual_image(self):
         self.run_installer()
         self.assertEqual((self.prefix / self.helper).read_bytes(), (self.bundle / self.helper).read_bytes())
@@ -159,7 +161,10 @@ class InstallerCases:
         self.run_installer()
         self.assertEqual(translation.read_text(), "Existing translation.\n")
         removals = [call for call in self.calls("docker") if call[0] == "rm"]
-        self.assertEqual(removals, [["rm", "-f", "test-libre"]])
+        expected = [["rm", "-f", "test-libre"]]
+        if self.web_name:
+            expected.append(["rm", "-f", self.web_name])
+        self.assertEqual(removals, expected)
 
     def test_tampered_file_fails_before_installing(self):
         self.write("ollama/models/blobs/test-model", "tampered")
@@ -258,11 +263,11 @@ class MacFixture(BundleFixture):
 @unittest.skipUnless(sys.platform == "darwin", "Mac installer tests need macOS")
 class MacInstallerTests(MacFixture, InstallerCases, unittest.TestCase):
     helper = "translate.sh"
+    web_name = "translation-web"
 
     def command(self, *options):
         return ["/bin/bash", str(self.bundle / "install.sh"), "--prefix", str(self.prefix),
                 "--app-dir", str(self.apps), "--port", self.port, "--name", "test-libre", *options]
-
     def test_stopped_docker_is_handled_without_real_services(self):
         self.settings["docker_down"] = True
         if Path("/Applications/Docker.app").is_dir():

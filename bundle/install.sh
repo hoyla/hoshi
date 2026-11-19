@@ -1,6 +1,7 @@
 #!/bin/bash
 # Install the offline translation bundle on an airgapped Apple Silicon Mac.
 #
+# Puts on both engines, the translate.sh helper and the translation web page.
 # Needs only the tools that ship with macOS, and Docker, which it installs
 # from the bundle if the Mac has none. Safe to re-run: every step either
 # replaces what an earlier run of this installer put there or leaves existing
@@ -12,6 +13,8 @@ HERE="$(cd "$(dirname "$0")" && pwd -P)"
 
 PORT=5050 # not 5000: macOS's AirPlay Receiver listens there
 NAME="libretranslate"
+WEB_PORT=5080
+WEB_NAME="translation-web"
 APP_DIR="/Applications"
 PREFIX="$HOME/translation-tools"
 DOCKER_APP="/Applications/Docker.app" # where Docker's own installer puts it
@@ -20,6 +23,8 @@ DO_VERIFY=1
 DO_DOCKER=1
 DO_OLLAMA=1
 DO_LAUNCH=1
+DO_WEB=1
+DO_OPEN=1
 
 usage() {
   cat <<EOF
@@ -27,10 +32,16 @@ Usage: ./install.sh [options]
 
   --port N         Local port for LibreTranslate (default: $PORT)
   --name NAME      Docker container name (default: $NAME)
+  --web-port N     Local port for the translation page (default: $WEB_PORT)
+  --web-name NAME  Docker container name for the page (default: $WEB_NAME)
   --app-dir DIR    Where Ollama.app goes (default: $APP_DIR)
   --prefix DIR     Where translate.sh goes (default: $PREFIX)
   --skip-verify    Don't check the bundle's checksums first
-  --no-docker      Skip LibreTranslate (and Docker)
+  --no-docker      Skip LibreTranslate (and Docker, and the translation page,
+                   which runs in Docker)
+  --no-web         Skip the translation page. LibreTranslate then shows its
+                   own page on its port
+  --no-open        Don't open the translation page in a browser at the end
   --yes            Don't ask before installing Docker Desktop
   --no-ollama      Skip Ollama and its models
   --no-launch      Install Ollama but don't open it
@@ -49,10 +60,14 @@ while [ $# -gt 0 ]; do
     --yes) ASK=0; shift ;;
     --port) PORT="${2:?}"; shift 2 ;;
     --name) NAME="${2:?}"; shift 2 ;;
+    --web-port) WEB_PORT="${2:?}"; shift 2 ;;
+    --web-name) WEB_NAME="${2:?}"; shift 2 ;;
     --app-dir) APP_DIR="${2:?}"; shift 2 ;;
     --prefix) PREFIX="${2:?}"; shift 2 ;;
     --skip-verify) DO_VERIFY=0; shift ;;
     --no-docker) DO_DOCKER=0; shift ;;
+    --no-web) DO_WEB=0; shift ;;
+    --no-open) DO_OPEN=0; shift ;;
     --no-ollama) DO_OLLAMA=0; shift ;;
     --no-launch) DO_LAUNCH=0; shift ;;
     -h|--help) usage; exit 0 ;;
@@ -100,6 +115,11 @@ if [ "$DO_DOCKER" = 1 ] && { [ -z "$IMAGE" ] || [ -z "$LT_TAR" ]; }; then
 fi
 if [ "$DO_OLLAMA" = 1 ] && [ -z "$(cfg OLLAMA_ZIP)" ]; then
   die "this bundle was built without the Mac version of Ollama. Rebuild it with --targets mac, or re-run with --no-ollama."
+fi
+# The page runs on the LibreTranslate image, so there is none without Docker.
+[ "$DO_DOCKER" = 1 ] || DO_WEB=0
+if [ "$DO_WEB" = 1 ] && { [ ! -f "$HERE/install-web.sh" ] || [ ! -f "$HERE/web/app.py" ]; }; then
+  die "the translation page's files (install-web.sh and the web folder) are missing from the bundle. Copy them again from the original, or re-run with --no-web."
 fi
 
 # ---------------------------------------------------------------- checksums
@@ -199,6 +219,14 @@ fi
 
 # ------------------------------------------------------------ LibreTranslate
 if [ "$DO_DOCKER" = 1 ]; then
+  # Found out now, not after the long load, an earlier install's LibreTranslate
+  # has been removed, or a new one has been started without a page of its own.
+  # A page from an earlier install holds the port and is replaced.
+  if [ "$DO_WEB" = 1 ] && ! docker container inspect "$WEB_NAME" >/dev/null 2>&1 \
+      && nc -z 127.0.0.1 "$WEB_PORT" >/dev/null 2>&1; then
+    die "port $WEB_PORT, which the translation page uses, is already in use; pass --web-port with a free one"
+  fi
+
   say "Loading $IMAGE into Docker"
   note "Docker's disk before:"
   docker system df 2>&1 | sed 's/^/      /' || true
@@ -227,9 +255,19 @@ if [ "$DO_DOCKER" = 1 ]; then
     die "port $PORT is already in use; pass --port with a free one"
   fi
 
-  say "Starting LibreTranslate on $LT_URL"
+  # Where the translation page goes on, LibreTranslate's own page is turned
+  # off: it keeps no record of a translation and makes no check of one. The
+  # service still answers the translation page and translate.sh.
+  LT_OPTIONS=()
+  if [ "$DO_WEB" = 1 ]; then
+    LT_OPTIONS=(-e LT_DISABLE_WEB_UI=true)
+    say "Starting LibreTranslate on $LT_URL, without its own web page"
+  else
+    say "Starting LibreTranslate on $LT_URL"
+  fi
   docker run -d --name "$NAME" --label airgapped-translation=1 \
-    --pull never --restart unless-stopped -p "127.0.0.1:$PORT:5000" "$LOADED_ID" >/dev/null
+    --pull never --restart unless-stopped -p "127.0.0.1:$PORT:5000" \
+    ${LT_OPTIONS[@]+"${LT_OPTIONS[@]}"} "$LOADED_ID" >/dev/null
 
   UP=0
   for _ in $(seq 1 150); do
@@ -294,6 +332,16 @@ fi
   fi
 } >> "$PREFIX/bundle.env"
 
+# ---------------------------------------------------------- translation page
+# install-web.sh is also how the page is replaced later, from a small folder
+# of its own. Its files were checked above with the rest of the bundle.
+WEB_URL="http://127.0.0.1:$WEB_PORT"
+if [ "$DO_WEB" = 1 ]; then
+  bash "$HERE/install-web.sh" --prefix "$PREFIX" --port "$WEB_PORT" --name "$WEB_NAME" \
+      --skip-verify --part-of-install \
+    || die "the translation page did not start; the lines above say why. LibreTranslate and translate.sh are installed. Run ./install.sh again once that is put right, or with --no-web to have LibreTranslate's own page instead."
+fi
+
 # ------------------------------------------------------------ launch + test
 OLLAMA_OK="not checked"
 if [ "$DO_OLLAMA" = 1 ] && [ "$DO_LAUNCH" = 1 ]; then
@@ -319,11 +367,27 @@ if [ "$DO_OLLAMA" = 1 ] && [ "$DO_LAUNCH" = 1 ]; then
   fi
 fi
 
+if [ "$DO_DOCKER" = 0 ]; then
+  LT_STATE="skipped"
+elif [ "$DO_WEB" = 1 ]; then
+  LT_STATE="running; use it from the translation page or translate.sh"
+else
+  LT_STATE="$LT_URL (open in a browser)"
+fi
+if [ "$DO_WEB" = 1 ]; then
+  WEB_STATE="$WEB_URL (open in a browser)"
+elif docker container inspect "$WEB_NAME" >/dev/null 2>&1; then
+  WEB_STATE="skipped; the one an earlier install started was left as it is"
+else
+  WEB_STATE="skipped"
+fi
+
 say "Done"
 cat <<EOF
 
   Docker Desktop   $([ "$DOCKER_INSTALLED_NOW" = 1 ] && echo "installed by this run" || echo "not installed by this run")
-  LibreTranslate   $([ "$DO_DOCKER" = 1 ] && echo "$LT_URL (open in a browser)" || echo "skipped")
+  Translation page $WEB_STATE
+  LibreTranslate   $LT_STATE
   Ollama           $([ "$DO_OLLAMA" = 1 ] && echo "$OLLAMA_OK" || echo "skipped")
   Helper           $PREFIX/translate.sh --help
   What's installed $PREFIX/MANIFEST.txt
@@ -331,3 +395,4 @@ cat <<EOF
   Files to try     ${TEST_FILES:-none in this bundle}
   Log of this run  $TRANSLATION_INSTALL_LOG
 EOF
+if [ "$DO_WEB" = 1 ] && [ "$DO_OPEN" = 1 ]; then open "$WEB_URL" || true; fi
