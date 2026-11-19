@@ -27,7 +27,7 @@ software, and on Argos Translate, Ollama and Google's TranslateGemma. Hoshi is
 not officially associated with LibreTranslate or its products, or with any of
 the others. [Credits and licences](#credits-and-licences) says who made what.
 
-## Why two engines, and why one is outside Docker
+## Two engines: one in Docker and one not
 
 Docker on macOS runs a Linux VM with no access to the Apple GPU. LibreTranslate's
 small models are fast on CPU, so it lives in Docker. A 12B-parameter model on
@@ -161,7 +161,7 @@ Then see [bundle/README.txt](bundle/README.txt), which ships inside the bundle
 and is written for the people using the machine: copying the bundle over,
 installing on each platform, using it, and what to do when something fails.
 
-## The web page (Mac only)
+## The web page (Mac only at present)
 
 [web/](web/) is a page for translating a document or pasted text with either
 engine, at `http://127.0.0.1:5080`. It runs in a second container started from
@@ -227,7 +227,7 @@ for it.
 
 Tested in headless Chrome only, not Safari.
 
-## What the translate helper does for defensibility
+## Defensibility
 
 `translate.sh` (Mac) and `translate.ps1` (Windows, run through `translate.cmd`)
 take the same options and behave the same way:
@@ -285,7 +285,7 @@ LibreTranslate from that ID, and the web installer starts the page from the
 same ID, with Docker pulls disabled. A changed tag cannot select another
 image between inspection and startup.
 
-## The dropped-text check
+## Check for dropped text
 
 A translation engine can leave a sentence out, or repeat or invent one, and
 still read fluently. Both engines here are able to; LibreTranslate did it in
