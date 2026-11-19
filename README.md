@@ -17,7 +17,7 @@ More than 50 languages are supported.
 |---|---|---|
 | Runs in | Docker | Ollama, natively on macOS or Windows |
 | Good for | Whole documents with formatting (.docx, .pptx, .pdf, .html ...), quick gisting | Best available quality on plain text |
-| Languages | 50 (every Argos Translate model, 100 packages) | 55 core languages |
+| Languages | 50 ([every Argos Translate model](https://www.argosopentech.com/argospm/index/)), 100 packages) | 55 core languages |
 | On a Mac | [Hoshi's page](#the-web-page-mac-only) on `127.0.0.1:5080`, `translate.sh` | The same page, `translate.sh`, Ollama's chat window |
 | On Windows | Its own web page on `127.0.0.1:5050`, `translate.cmd` | `translate.cmd`, Ollama's chat window |
 | Size in bundle | 9 to 11 GB per target | about 8 GB, shared |
