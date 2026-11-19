@@ -694,6 +694,7 @@ def config():
     return {
         "version": VERSION,
         "tool": TOOL,
+        "build": BUILD,
         "folder": HOST_DATA_DIR,
         "libre": {
             "ok": info is not None,
