@@ -1,12 +1,12 @@
-# Hoshi
-
-Offline document translation for airgapped computers.
+# Hoshi: fully offline translation for airgapped computers
 
 Hoshi builds a single folder that installs two offline translation engines on
 an airgapped Apple Silicon Mac or Windows PC: no Homebrew, no pip, no winget, no
-network. A Windows PC needs Docker Desktop already. A Mac doesn't, because the
-bundle carries Docker Desktop's installer for it. One bundle serves both kinds
-of machine, and every model is inside it.
+network. 
+
+One bundle serves both kinds of machine, and every model is inside it.
+
+Windows PCs will need Docker Desktop. For Macs, the bundle includes a Docker Desktop installer. 
 
 <img alt="Screenshot 2026-11-19 at 14 12 24" src="https://github.com/user-attachments/assets/a7a1e69a-212d-43b8-9594-927f976bb1ea" />
 
