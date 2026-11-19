@@ -75,9 +75,15 @@ note "log: $TRANSLATION_INSTALL_LOG"
 
 IMAGE="$(cfg LT_IMAGE)"
 IMAGE_ID="$(cfg LT_IMAGE_ID_INSTALLED)"
+LT_CONTAINER="$(cfg LT_CONTAINER)"
+LT_CONTAINER="${LT_CONTAINER:-libretranslate}"
 LT_URL="$(cfg LT_URL)"
 [ -n "$IMAGE" ] && [ -n "$LT_URL" ] \
   || die "$PREFIX/bundle.env doesn't say which LibreTranslate image is installed. The page needs it: re-run the bundle's install.sh without --no-docker."
+case "$IMAGE_ID" in
+  sha256:?*) ;;
+  *) die "$PREFIX/bundle.env has no installed image ID. Re-run the bundle's install.sh without --no-docker before installing the page." ;;
+esac
 OLLAMA_ADDRESS="${OLLAMA_HOST:-127.0.0.1:11434}"
 URL="http://127.0.0.1:$PORT"
 
@@ -109,8 +115,14 @@ if ! docker info >/dev/null 2>&1; then
   done
   [ "$UP" = 1 ] || die "Docker didn't become ready. Open Docker from Applications, wait until it says it is running, then re-run."
 fi
-docker image inspect "$IMAGE" >/dev/null 2>&1 \
-  || die "Docker here has no image called $IMAGE. Run the bundle's install.sh first: the page runs on that image."
+# A build can move the tag to an image with other language models. Use the
+# installed ID even if its tag has moved or disappeared; never fall back to it.
+docker image inspect "$IMAGE_ID" >/dev/null 2>&1 \
+  || die "Docker here has no image with the installed ID $IMAGE_ID ($IMAGE). Re-run the bundle's install.sh first."
+SERVICE_IMAGE_ID="$(docker container inspect --format '{{.Image}}' "$LT_CONTAINER" 2>/dev/null || true)"
+if [ -n "$SERVICE_IMAGE_ID" ] && [ "$SERVICE_IMAGE_ID" != "$IMAGE_ID" ]; then
+  die "LibreTranslate container '$LT_CONTAINER' uses a different image ($SERVICE_IMAGE_ID) from the installed ID ($IMAGE_ID). Re-run the bundle's install.sh, then install the page again."
+fi
 
 if docker container inspect "$NAME" >/dev/null 2>&1; then
   OURS="$(docker container inspect --format '{{index .Config.Labels "airgapped-translation"}}' "$NAME")"
@@ -139,6 +151,7 @@ FOLDER="$(cd "$FOLDER" && pwd -P)"
 # it answers on this Mac only.
 say "Starting the page on $URL"
 docker run -d --name "$NAME" --label airgapped-translation=1 \
+  --pull never \
   --restart unless-stopped -p "127.0.0.1:$PORT:8080" \
   -v "$PREFIX/web:/opt/translation-web:ro" \
   -v "$PREFIX/languages.tsv:/opt/languages.tsv:ro" \
@@ -149,9 +162,9 @@ docker run -d --name "$NAME" --label airgapped-translation=1 \
   -e DATA_DIR=/data -e HOST_DATA_DIR="$FOLDER" -e UPLOAD_DIR=/uploads \
   -e LT_URL="http://host.docker.internal:${LT_URL##*:}" \
   -e OLLAMA_API="http://host.docker.internal:${OLLAMA_ADDRESS##*:}" \
-  -e LT_IMAGE="$IMAGE" -e LT_IMAGE_ID="${IMAGE_ID:-unknown}" \
+  -e LT_IMAGE="$IMAGE" -e LT_IMAGE_ID="$IMAGE_ID" \
   -e GEMMA_MODELS="$(cfg GEMMA_MODELS)" -e DEFAULT_MODEL="$(cfg DEFAULT_MODEL)" \
-  --entrypoint /app/venv/bin/python "$IMAGE" -u /opt/translation-web/app.py >/dev/null
+  --entrypoint /app/venv/bin/python "$IMAGE_ID" -u /opt/translation-web/app.py >/dev/null
 
 CONFIG=""
 for _ in $(seq 1 30); do

@@ -18,7 +18,7 @@ ratings. They never download a model or run real inference in CI.
 |---|---|---|
 | Mac installer | macOS, native Bash | Tiny bundle installation, reruns, checksums, loopback binding, recorded image ID, retained translations, logs, conflicts, Docker startup, copying and engine failures. |
 | Windows installer | Windows PowerShell 5.1 or PowerShell 7 on Windows | Tiny bundle installation, reruns, checksums, loopback binding, recorded image ID, retained translations, conflicts, Linux-container checks, ARM image selection, model copying and setup failures. Also the real `install.cmd` launcher for help and error exit codes. |
-| Web installer | macOS, native Bash | Checksums, loopback binding, upload tmpfs, prerequisites, conflicts, page startup and retained translations during updates. |
+| Web installer | macOS, native Bash | Checksums, loopback binding, upload tmpfs, prerequisites, moved or missing image tags, image/service identity conflicts, page startup and retained translations during updates. |
 | Output integrity | Mac Bash, PowerShell, Python web code | Both engines, result reuse, changed settings/encoding, output and extracted-text hashes, concurrent writers, source snapshots and failed publication. |
 | Splitter parity | macOS | The Python splitter, counters and trimming against the helper's own awk programs. |
 

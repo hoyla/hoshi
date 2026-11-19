@@ -147,6 +147,9 @@ class InstallerCases:
         run = next(call for call in self.calls("docker") if call[0] == "run" and "-d" in call)
         self.assertIn(f"127.0.0.1:{self.port}:5000", run)
         self.assertIn("airgapped-translation=1", run)
+        self.assertIn("--pull", run)
+        self.assertEqual(run[run.index("--pull") + 1], "never")
+        self.assertEqual(run[-1], "sha256:test-loaded-image")
         self.assertIn("--engine gemma", (self.root / "helper-calls.txt").read_text())
 
     def test_rerun_replaces_only_our_container_and_keeps_translations(self):
@@ -197,6 +200,13 @@ class InstallerCases:
         self.settings["load_fails"] = True
         self.assertIn("docker load failed", self.run_installer(success=False))
         self.assertFalse(any(call[0] == "run" for call in self.calls("docker")))
+
+    def test_failed_image_inspection_preserves_existing_container(self):
+        self.run_installer()
+        calls_before = len(self.calls("docker"))
+        self.settings["image_missing"] = True
+        self.assertIn("couldn't read the loaded", self.run_installer(success=False))
+        self.assertFalse(any(call[0] in ("rm", "run") for call in self.calls("docker")[calls_before:]))
 
     def test_container_start_failure_is_not_reported_as_done(self):
         self.settings["run_fails"] = True
@@ -369,7 +379,8 @@ class WebInstallerTests(MacFixture, unittest.TestCase):
         shutil.copy(self.bundle / "languages.tsv", self.prefix)
         (self.prefix / "bundle.env").write_text(
             "LT_IMAGE=libretranslate-offline:test-arm64\nLT_IMAGE_ID_INSTALLED=sha256:test-loaded-image\n"
-            "LT_URL=http://127.0.0.1:5050\nGEMMA_MODELS=translategemma:12b\nDEFAULT_MODEL=translategemma:12b\n"
+            "LT_CONTAINER=installed-libre\nLT_URL=http://127.0.0.1:5050\n"
+            "GEMMA_MODELS=translategemma:12b\nDEFAULT_MODEL=translategemma:12b\n"
         )
 
     def command(self, *options):
@@ -383,6 +394,36 @@ class WebInstallerTests(MacFixture, unittest.TestCase):
         self.assertIn("/uploads:rw,mode=1777", run)
         self.assertIn("sha256:test-loaded-image", " ".join(run))
         self.assertEqual((self.prefix / "web/app.py").read_bytes(), (self.bundle / "web/app.py").read_bytes())
+
+    def test_web_uses_installed_image_when_tag_moves_or_disappears(self):
+        for change in ("tag_moved", "tag_missing"):
+            with self.subTest(change=change):
+                self.settings = {change: True}
+                self.run_installer()
+                run = next(call for call in reversed(self.calls("docker")) if call[0] == "run")
+                self.assertEqual(run[run.index("--entrypoint") + 2], "sha256:test-loaded-image")
+                self.assertEqual(run[run.index("--pull") + 1], "never")
+                self.assertIn("LT_IMAGE_ID=sha256:test-loaded-image", run)
+
+    def test_missing_installed_id_does_not_fall_back_to_tag(self):
+        settings = self.prefix / "bundle.env"
+        settings.write_text(settings.read_text().replace("LT_IMAGE_ID_INSTALLED=sha256:test-loaded-image\n", ""))
+        self.assertIn("installed image ID", self.run_installer(success=False))
+        self.assert_not_started()
+
+    def test_changed_service_image_preserves_the_existing_page(self):
+        self.run_installer()
+        self.settings["libre_image_changed"] = True
+        calls_before = len(self.calls("docker"))
+        page = self.prefix / "web/app.py"
+        page.write_text("Existing page files.\n")
+        self.assertIn("different image", self.run_installer(success=False))
+        self.assertFalse(any(call[0] in ("rm", "run") for call in self.calls("docker")[calls_before:]))
+        self.assertEqual(page.read_text(), "Existing page files.\n")
+
+    def test_web_can_start_while_libre_container_is_absent(self):
+        self.settings["libre_container_missing"] = True
+        self.run_installer()
 
     def test_web_files_are_verified(self):
         self.write("web/app.py", "changed")
@@ -404,6 +445,9 @@ class WebInstallerTests(MacFixture, unittest.TestCase):
     def test_missing_image_is_reported(self):
         self.settings["image_missing"] = True
         self.assertIn("has no image", self.run_installer(success=False))
+        self.assert_not_started()
+        inspected = [call[-1] for call in self.calls("docker") if call[:2] == ["image", "inspect"]]
+        self.assertEqual(inspected, ["sha256:test-loaded-image"])
 
     def test_page_start_failure_is_reported(self):
         self.settings["web_down"] = True

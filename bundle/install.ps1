@@ -201,7 +201,9 @@ try {
     }
     # Sidecars record the image by the ID Docker gives it on this PC, which can
     # differ from the manifest's depending on how each Docker stores images.
-    $LOADED_ID = (Get-ToolOutput 'docker' @('image', 'inspect', '--format', '{{.Id}}', $IMAGE)).Text
+    $loaded = Get-ToolOutput 'docker' @('image', 'inspect', '--format', '{{.Id}}', $IMAGE)
+    if ($loaded.Code -ne 0 -or -not $loaded.Text) { Die "couldn't read the loaded LibreTranslate image ID; re-run the installer" }
+    $LOADED_ID = $loaded.Text
     if ($LOADED_ID -ne (Get-Cfg "LT_IMAGE_ID_$($ARCH.ToUpperInvariant())")) {
       Note "Docker here knows the image as $LOADED_ID; recorded in bundle.env beside the manifest's ID"
     }
@@ -217,7 +219,7 @@ try {
     if (Test-PortInUse ([int]$PORT)) { Die "port $PORT is already in use; pass --port with a free one" }
 
     Say "Starting LibreTranslate on $LT_URL"
-    & docker run -d --name $NAME --label airgapped-translation=1 --restart unless-stopped -p "127.0.0.1:${PORT}:5000" $IMAGE | Out-Null
+    & docker run -d --name $NAME --label airgapped-translation=1 --pull never --restart unless-stopped -p "127.0.0.1:${PORT}:5000" $LOADED_ID | Out-Null
     if ($LASTEXITCODE -ne 0) { Die 'docker could not start the LibreTranslate container; see the message above' }
     if (-not (Wait-Url "$LT_URL/languages" 150 2)) {
       & docker logs --tail 30 $NAME
