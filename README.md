@@ -66,7 +66,7 @@ Either installer checks and uses only its own platform's files, so the other
 platform's big files can be left off a drive bound for one kind of machine
 ([bundle/README.txt](bundle/README.txt) says which).
 
-## Build (connected Mac)
+## Build (done on an internet connected Mac to create the installation material)
 
 Needs an Apple Silicon Mac with Docker running. For one target: about 30 GB
 free on the Mac, and 12 or 30 GB free inside Docker's own disk, depending on
