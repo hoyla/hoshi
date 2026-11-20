@@ -45,7 +45,9 @@ jobs:
   windows:
     name: Windows installers and helpers (${{ matrix.runtime }})
     runs-on: windows-2022
-    timeout-minutes: 10
+    # About 9 minutes: each installer run is some 10 seconds here and the
+    # installer cases make about fifty of them.
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
