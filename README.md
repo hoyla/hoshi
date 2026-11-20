@@ -121,7 +121,9 @@ downloads. It:
    otherwise) into a model store inside the bundle, using the Mac Ollama on a
    private port so your own Ollama setup is untouched, and runs a test
    translation with each of them from that store
-5. copies in the scripts, the user guide and the test documents in
+5. copies in the scripts (giving `Install.command` the Hoshi icon in Finder,
+   kept in the file's metadata so its checksum is unchanged), the user guide
+   and the test documents in
    [bundle/test-files/](bundle/test-files/), and
    [the web page](#the-web-page), after checking that the page
    splits text exactly as `translate.sh` does
@@ -965,6 +967,12 @@ The Windows items can't be done from a Mac.
   the applet differently, nor on a Mac where the bundle arrived by download
   rather than on a drive (the app is made on the Mac and should carry no
   quarantine, but Gatekeeper's view of an ad hoc signature there is untested)
+- **`Install.command`'s Hoshi icon on a real exFAT stick.** Tried on a FAT32
+  disk image (macOS wouldn't make an exFAT one without erasing a disk): copied
+  with `ditto` or `cp`, the icon went into the `._Install.command` file macOS
+  writes there, and Finder showed it. A Finder copy to a real exFAT stick, and
+  a copy that passes through Windows (which should just lose the icon), have
+  not been tried
 - **the Start-menu entry on Windows** at all, beyond what the regression
   workflow's run of `install.ps1` checks (the shortcut file, its target,
   folder and icon): that it shows in the Start menu and search, opens

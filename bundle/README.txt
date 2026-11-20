@@ -106,7 +106,9 @@ does anything, so a file damaged in copying is caught rather than installed.
 INSTALLING ON A MAC
 -------------------
 Open this folder in Finder and double-click Install.command. (Depending on
-your settings it may show as just "Install".)
+your settings it may show as just "Install".) It has the Hoshi icon, two
+speech bubbles with a padlock, unless the folder passed through a Windows PC
+on its way here; then it has the plain icon of a Terminal script.
 
 A Terminal window opens and reports each step. First it checks the Mac: the
 macOS version, that the two ports it uses are free, that there is enough
