@@ -202,8 +202,8 @@ printf 'BUNDLE_BUILT_UTC=%s\n' "$BUILT_UTC" > "$OUT/bundle.env"
 rm -f "$OUT/MANIFEST.txt" "$OUT/SHA256SUMS" "$OUT/README.txt" "$OUT/languages.tsv" \
   "$OUT/LICENSE.txt" "$OUT/NOTICE.txt" "$OUT"/install.* "$OUT"/install-web.* "$OUT"/translate.* \
   "$OUT/Install.command" "$OUT/Start Translation.command" "$OUT/Start Translation.cmd" \
-  "$OUT/start-translation.ps1"
-rm -rf "$OUT/test-files" "$OUT/licences" "$OUT/web"
+  "$OUT/start-translation.ps1" "$OUT/Hoshi Offline Translation.applescript"
+rm -rf "$OUT/test-files" "$OUT/licences" "$OUT/web" "$OUT/icons"
 mkdir "$OUT/licences"
 UNFINISHED="$OUT/BUILD-NOT-FINISHED.txt"
 cat > "$UNFINISHED" <<EOF
@@ -540,6 +540,10 @@ if [ "$WANT_MAC" = 1 ]; then
   cp "$SRC/bundle/install.sh" "$SRC/bundle/translate.sh" "$SRC/bundle/Install.command" \
     "$SRC/bundle/Start Translation.command" "$OUT/"
   chmod +x "$OUT/install.sh" "$OUT/translate.sh" "$OUT/Install.command" "$OUT/Start Translation.command"
+  # install.sh makes the Hoshi Offline Translation app from these, on the Mac
+  mkdir -p "$OUT/icons"
+  cp "$SRC/bundle/Hoshi Offline Translation.applescript" "$OUT/"
+  cp "$SRC/bundle/icons/hoshi.icns" "$OUT/icons/"
   INSTALLS_ON="Apple Silicon Macs (double-click Install.command, which runs install.sh)"
 fi
 if [ "$WANT_WINDOWS" = 1 ]; then
@@ -548,6 +552,9 @@ if [ "$WANT_WINDOWS" = 1 ]; then
   for f in install.cmd translate.cmd "Start Translation.cmd"; do
     perl -pe 's/\r?\n\z/\r\n/' "$SRC/bundle/$f" > "$OUT/$f"
   done
+  # the Start-menu entry's icon
+  mkdir -p "$OUT/icons"
+  cp "$SRC/bundle/icons/hoshi.ico" "$OUT/icons/"
   INSTALLS_ON="${INSTALLS_ON:+$INSTALLS_ON; }Windows PCs (install.cmd)"
 fi
 assemble_web "$SRC" "$OUT" "built $BUILT_UTC from commit ${SOURCE_COMMIT:-unknown}${SOURCE_CHANGES:+ plus uncommitted changes}" "$TARGETS"
@@ -654,6 +661,12 @@ assemble_web "$SRC" "$OUT" "built $BUILT_UTC from commit ${SOURCE_COMMIT:-unknow
   echo "translate helper; they install nothing)"
   [ "$WANT_MAC" = 0 ] || echo "  On a Mac:         Start Translation.command"
   [ "$WANT_WINDOWS" = 0 ] || echo "  On Windows:       Start Translation.cmd, which runs start-translation.ps1"
+  echo "  and the way in that a user sees, called Hoshi Offline Translation:"
+  [ "$WANT_MAC" = 0 ] || echo "  On a Mac:         an app in Applications, which install.sh makes from"
+  [ "$WANT_MAC" = 0 ] || echo "                    Hoshi Offline Translation.applescript and icons/hoshi.icns;"
+  [ "$WANT_MAC" = 0 ] || echo "                    it runs Start Translation.command"
+  [ "$WANT_WINDOWS" = 0 ] || echo "  On Windows:       a Start-menu entry, with icons/hoshi.ico, that opens"
+  [ "$WANT_WINDOWS" = 0 ] || echo "                    Start Translation.cmd"
   echo
   echo "Test files (test-files/; the installers copy them beside the translate helper)"
   echo "  Extracts from Wikipedia's articles on Earth, CC BY-SA 4.0. Sources,"

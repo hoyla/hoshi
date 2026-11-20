@@ -681,6 +681,12 @@ def index():
     return send_from_directory(app.static_folder, "index.html")
 
 
+@app.get("/favicon.ico")
+def favicon():
+    """Where a browser looks for the icon before it has read the page."""
+    return send_from_directory(app.static_folder, "favicon.ico")
+
+
 @app.get("/api/config")
 def config():
     info = lt_info()

@@ -1,5 +1,5 @@
-OFFLINE TRANSLATION
-===================
+HOSHI OFFLINE TRANSLATION
+=========================
 
 Two translation engines that run entirely on one computer, a Mac or a
 Windows PC. Nothing leaves the machine and nothing here needs a network.
@@ -114,9 +114,12 @@ free disk space, and how much memory there is. If one of these will not do,
 it says so now, in a minute, and not half an hour in. Then it checks the
 files, loads LibreTranslate into Docker, copies Ollama.app into
 /Applications and the models into ~/.ollama/models, and puts the
-translate.sh helper and some test files in ~/translation-tools. It starts
-the translation page, runs a test translation through each engine, and
-finishes by opening the page in your browser. Allow 15 to 30 minutes.
+translate.sh helper and some test files in ~/translation-tools. It makes an
+app called Hoshi Offline Translation in Applications (in the Applications
+folder in your home folder, if your account cannot write to the main one).
+It starts the translation page, runs a test translation through each
+engine, and finishes by opening the page in your browser. Allow 15 to 30
+minutes.
 
 The window stays open at the end. It says either "The install finished",
 with a summary above that line, or "The install did NOT finish", with the
@@ -178,7 +181,8 @@ minute, and not half an hour in. Then it checks the files, loads
 LibreTranslate into Docker, copies the model into the .ollama folder in your
 user folder, installs Ollama for your user account, and puts the translate
 helper and some test files in the translation-tools folder in your user
-folder. It starts the translation page, runs a test translation through each
+folder, and puts Hoshi Offline Translation in your Start menu. It starts the
+translation page, runs a test translation through each
 engine, says how long TranslateGemma took, and finishes by opening the page
 in your browser. Allow 10 to 30 minutes. When it says "Press any key to
 continue", read the summary above that line, then press a key to close the
@@ -567,18 +571,27 @@ A translation with no warnings can still be wrong.
 
 AFTER A RESTART
 ---------------
-On a Mac, open the translation-tools folder in your home folder and
-double-click "Start Translation.command". On Windows, open the
-translation-tools folder in your user folder and double-click
-"Start Translation" (of type "Windows Command Script").
+Open Hoshi Offline Translation:
+
+  On a Mac      from Applications, from Launchpad, or by typing its name in
+                Spotlight (Command-Space). You may drag it to the Dock.
+  On Windows    from the Start menu: press the Windows key and type Hoshi.
+                You may pin it to Start.
 
 It opens Docker Desktop and Ollama if they are not running, waits for
 LibreTranslate, TranslateGemma and the translation page, and opens the page
-in your browser. Allow a few minutes after a restart. If one of the three
-does not answer, it says which one and what to do about it. It installs
-nothing and can be used as often as you like. You may drag it to the Dock
-(Mac) or make a shortcut to it on the desktop (Windows); leave the file
-itself where it is.
+in your browser. Allow a few minutes after a restart. On a Mac a small
+window says what it is waiting for, with a Stop button; on Windows a black
+window does. If one of the three does not answer, it says which one and
+what to do about it (see "If something goes wrong"). It installs nothing
+and can be used as often as you like; opening it again while it is waiting
+starts nothing new.
+
+If it is not there, the same thing is in the translation-tools folder in
+your home (Mac) or user (Windows) folder: double-click "Start
+Translation.command" on a Mac, or "Start Translation" (of type "Windows
+Command Script") on Windows. It shows what it is doing in a Terminal or
+black window instead.
 
 By hand, the same thing: start Docker Desktop, and LibreTranslate and the
 translation page come back by themselves. For TranslateGemma, Ollama has to
@@ -639,11 +652,31 @@ Ollama was already installed in an older version
     app to the Trash on a Mac; Settings > Apps on Windows), and run the
     installer again. Your models are kept.
 
-"Start Translation" says something is NOT answering
-    It names which of the three it is and what to do. Most often Docker
-    Desktop is showing a window that wants an answer: accept its agreement
-    if asked, skip signing in and updating, wait until it says it is
-    running, and double-click "Start Translation" again.
+Hoshi Offline Translation, or "Start Translation", says something didn't
+start or is NOT answering
+    It names which of the three it is (LibreTranslate, TranslateGemma or
+    the translation page) and what to do. Most often Docker Desktop is
+    showing a window that wants an answer: accept its agreement if asked,
+    skip signing in and updating, wait until it says it is running, and
+    open Hoshi Offline Translation again. If the page could be opened, it
+    is open, and works with the engine that did start.
+
+"Docker Desktop: it isn't in Applications"
+    Docker Desktop was moved or removed. Put it back in Applications, or
+    run the installer again from the bundle, which installs it.
+
+"Ollama, which runs it, isn't at ..."
+    Ollama was moved or removed. Put it back where the message says, or
+    run the installer again from the bundle, which installs it.
+
+"Hoshi Offline Translation isn't installed on this Mac"
+    The app could not find the translation-tools folder in your home
+    folder, which it needs: it was deleted or moved, or the app was copied
+    from another Mac. Run the installer from the bundle.
+
+"already being started, in another window"
+    It is already starting, from the app or from "Start Translation".
+    Wait for that one; it opens the page when everything is ready.
 
 "port 5080, which the translation page uses, is already in use"
     Run the installer again with --web-port 5081. The page is then at
@@ -729,8 +762,9 @@ On a Mac
     docker image rm $(grep '^LT_IMAGE=' ~/translation-tools/bundle.env | cut -d= -f2)
 
     Move ~/translation-tools/translations somewhere else if you want to
-    keep what the page translated. Then move Ollama.app to the Trash and
-    delete ~/translation-tools.
+    keep what the page translated. Then move Ollama.app and Hoshi Offline
+    Translation (in Applications, or the Applications folder in your home
+    folder) to the Trash, and delete ~/translation-tools.
     ~/.ollama holds the models. Delete it only if this Mac had no Ollama
     before: it holds every Ollama model on the Mac, not just these.
 
@@ -749,7 +783,12 @@ On Windows, in Command Prompt
 
     Move the translations folder out of translation-tools if you want to
     keep what the page translated. Then uninstall Ollama in Settings >
-    Apps, and delete the translation-tools folder in your user folder. The .ollama folder there
+    Apps, delete the translation-tools folder in your user folder, and
+    take Hoshi Offline Translation out of the Start menu:
+
+        del "%APPDATA%\Microsoft\Windows\Start Menu\Programs\Hoshi Offline Translation.lnk"
+
+    The .ollama folder in your user folder
     holds the models. Delete it only if this PC had no Ollama before: it
     holds every Ollama model on the PC, not just these.
 

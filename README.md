@@ -189,7 +189,39 @@ The installers put `Start Translation.command` (Mac) or `Start
 Translation.cmd` (Windows) beside the translate helper, for after a restart:
 it opens Docker Desktop and Ollama if they are not running, waits for
 LibreTranslate, Ollama and the page, opens the page, and names whichever of
-the three did not answer.
+the three did not answer. It says at once, without waiting, when Docker
+Desktop or the recorded Ollama app is no longer where it was, and when Docker
+is open but not answering (most often its agreement or sign-in window). One
+start runs at a time: a second, while the first waits, says so and stops.
+
+What a journalist sees of it is named **Hoshi Offline Translation**:
+
+- On a Mac, `install.sh` makes `Hoshi Offline Translation.app` in `--app-dir`
+  (`/Applications`), or in `~/Applications` when the account can't write
+  there. It is compiled on the Mac by `osacompile` from
+  [bundle/Hoshi Offline Translation.applescript](bundle/Hoshi%20Offline%20Translation.applescript),
+  given `icons/hoshi.icns` and signed ad hoc with `codesign`, all of which
+  ship with macOS. Made on the Mac, it carries no quarantine for Gatekeeper.
+  It holds no logic: it runs the installed `Start Translation.command --app
+  FILE`, shows a progress window with what that is waiting for (and a Stop
+  button), and at the end a dialog with what did not start, what to do, and
+  the support line. On success it says nothing and the page opens. It is an
+  osacompile applet, not a bundle whose executable is a shell script, because
+  macOS gives a script executable no Dock icon and no window at all: tried on
+  macOS 26, such an app is not even listed as running, and minutes of waiting
+  for Docker would show nothing. macOS also keeps an applet to one copy, so
+  opening it twice starts one wait.
+- On Windows, `install.ps1` puts `Hoshi Offline Translation.lnk` in the
+  user's Start-menu Programs folder (`--start-menu-dir` for another), made
+  with the `WScript.Shell` COM object, pointing at the installed `Start
+  Translation.cmd` with `hoshi.ico`. None goes on the desktop: on many managed
+  PCs the desktop is synced to the network, and the Start menu is where
+  Windows sends people to look.
+
+Each is recorded in the installed `bundle.env` (`LAUNCHER_APP`,
+`START_MENU_SHORTCUT`), and a later install replaces it only where that record
+names it; one it didn't make is left, with a closing line saying so. `--no-app`
+(Mac) and `--no-shortcut` (Windows) leave it out.
 
 On a Mac with no Docker, `install.sh` installs Docker Desktop from the bundle.
 It asks first, runs Docker's own installer with `sudo` (so it needs an
@@ -491,7 +523,11 @@ bundle/                copied into every bundle (each target gets its own script
   install.sh           the Mac installer
   Start Translation.command
                        double-clicked after a restart; installed beside
-                         translate.sh
+                         translate.sh. Also what the app runs (--app FILE)
+  Hoshi Offline Translation.applescript
+                       install.sh compiles it into the Mac app
+  icons/               hoshi.icns (Mac app), hoshi.ico (Start menu), and
+                         source/: the icon pack's SVG masters and artwork
   install-web.sh       starts the web page; run by install.sh, and by hand
                          from a page update
   install-web.cmd      the same for Windows: run by install.ps1, and
@@ -507,7 +543,7 @@ bundle/                copied into every bundle (each target gets its own script
   README.txt           user guide, both platforms
   test-files/          documents to try, installed beside the translate helper
 web/                   the web page: app.py, gemma.py, extract.py, check.py,
-                         static/, tests/
+                         static/ (with the page's icon and favicon), tests/
   assemble.sh          lays the page out for a bundle or a page update
 calibration/           how the dropped-text check's thresholds were measured
   en.txt               the test article
@@ -523,8 +559,8 @@ dist/                  built bundles (not in git)
 ```
 
 `install.sh` and `translate.sh` use only what ships with macOS: bash 3.2, curl,
-awk, sed, plutil, perl, textutil, and in the installer nc, df, stat, osascript
-and pgrep. Not `iconv`: the macOS build wrongly rejects
+awk, sed, plutil, perl, textutil, and in the installer nc, df, stat, osascript,
+pgrep, osacompile and codesign. Not `iconv`: the macOS build wrongly rejects
 valid UTF-8 that contains long lines.
 
 The `.ps1` scripts use only what ships with Windows 10 and 11: Windows
@@ -667,8 +703,11 @@ checksum pass (ports, disk space, memory, and on the Mac the macOS version),
 installing over an earlier install (which bundle is newer, the earlier image
 removed or kept, leftover models listed, Ollama replaced only where an earlier
 install put it there), the closing lines of a failed run and the support
-line, and "Start Translation" with each of the three services not answering.
-The Mac cases run `Install.command`.
+line, "Start Translation" with each of the three services not answering, and
+the Hoshi Offline Translation app (Mac) or Start-menu entry (Windows): made,
+recorded, replaced only when the installer made it. On the Mac they also run
+what the app runs, `Start Translation.command --app`, through each failure the
+app reports. The Mac cases run `Install.command`.
 
 [The regression workflow](.github/workflows/regression.yml) runs on macOS and
 Windows, including Windows PowerShell 5.1 and PowerShell 7. The Mac tests need
@@ -779,6 +818,25 @@ emulation.
   `--no-open`, so the Ollama step and the opening of the page did not run.
   The switch that turns LibreTranslate's page off was also tried on the full
   image, with the same answers and `/detect` working
+- *from this repository, 2026-11-20,* the Hoshi Offline Translation app, on
+  the build Mac (macOS 26.7) beside the full installation. `install.sh` ran
+  unchanged from a hand-assembled bundle folder (no images: `--no-docker
+  --no-ollama --skip-verify`) into a scratch `--prefix` and `--app-dir`, and
+  made the app with the real `osacompile` and `codesign`; a re-run replaced
+  it. `install-web.sh` then started this branch's page in a scratch container
+  on its own port from the installed image, and the scratch `bundle.env` was
+  pointed at the real LibreTranslate, which the app only reads from. Opened
+  with `open`, the app showed its icon in the Dock and its progress window,
+  opened the page in the browser in about a second and quit with nothing to
+  say. With the recorded Ollama app moved away it said so at once, still
+  opened the page, and named TranslateGemma in its dialog with the support
+  line; with the page's address dead it waited about a minute and named the
+  page as well; with the install folder moved away it said the install isn't
+  on this Mac; Stop ended the wait and the script under it; opened twice, and
+  with `Start Translation.command` run in Terminal at the same time, one wait
+  ran. Docker Desktop was running throughout: its failure dialogs ran only
+  against stand-ins. The page was looked at in the Claude desktop app's
+  Chromium browser pane at desktop and phone widths, light and dark: title, icon beside the heading, favicon
 
 **The Windows installer.** Nothing has run on Windows. `install.ps1`'s logic
 was run in PowerShell 7 with stand-ins for Docker, robocopy and the Ollama
@@ -893,8 +951,21 @@ The Windows items can't be done from a Mac.
   Docker Desktop takes, whether five minutes is enough, and on Windows
   whether Docker Desktop is where the script looks for it
 - `build-bundle.sh --support`, and a build since the new files were added:
-  no bundle has been built that carries `Install.command` or the "Start
-  Translation" files
+  no bundle has been built that carries `Install.command`, the "Start
+  Translation" files, the app's AppleScript or the icons
+- **the Hoshi Offline Translation app** in `/Applications` from a real
+  install: that Launchpad and Spotlight list it (it has only been made in
+  scratch folders, which Spotlight doesn't index), that it lands in
+  `~/Applications` on a standard (non-admin) account, and its Docker Desktop
+  dialogs against a real Docker Desktop that is missing, quit, or waiting on
+  its agreement. Not tried on macOS 14 or 15, where `osacompile` may lay out
+  the applet differently, nor on a Mac where the bundle arrived by download
+  rather than on a drive (the app is made on the Mac and should carry no
+  quarantine, but Gatekeeper's view of an ad hoc signature there is untested)
+- **the Start-menu entry on Windows** at all, beyond what the regression
+  workflow's run of `install.ps1` checks (the shortcut file, its target,
+  folder and icon): that it shows in the Start menu and search, opens
+  `Start Translation.cmd` and shows the icon
 
 - **a real installation on a Windows PC with Docker Desktop and Ollama.**
   The regression workflow now exercises the installers and helpers on Windows

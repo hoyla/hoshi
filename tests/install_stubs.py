@@ -154,7 +154,8 @@ elif command == "ditto":
 elif command == "osascript":
     pass
 elif command == "pgrep":
-    sys.exit(0 if settings.get("ollama_wont_quit") else 1)
+    running = settings.get("docker_backend_running") if args[-1] == "com.docker.backend" else settings.get("ollama_wont_quit")
+    sys.exit(0 if running else 1)
 elif command == "seq":
     # Exercise timeout failures without waiting several minutes.
     print(1)

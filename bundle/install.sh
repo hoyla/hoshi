@@ -27,6 +27,7 @@ DO_LAUNCH=1
 DO_WEB=1
 DO_OPEN=1
 DO_SPACE=1
+DO_APP=1
 
 usage() {
   cat <<EOF
@@ -36,7 +37,9 @@ Usage: ./install.sh [options]
   --name NAME      Docker container name (default: $NAME)
   --web-port N     Local port for the translation page (default: $WEB_PORT)
   --web-name NAME  Docker container name for the page (default: $WEB_NAME)
-  --app-dir DIR    Where Ollama.app goes (default: $APP_DIR)
+  --app-dir DIR    Where Ollama.app and the Hoshi Offline Translation app go
+                   (default: $APP_DIR; the Hoshi app goes in ~/Applications
+                   when this one can't be written to)
   --prefix DIR     Where translate.sh goes (default: $PREFIX)
   --skip-verify    Don't check the bundle's checksums first
   --no-space-check Install even if the disk looks too full for it
@@ -48,6 +51,7 @@ Usage: ./install.sh [options]
   --yes            Don't ask before installing Docker Desktop
   --no-ollama      Skip Ollama and its models
   --no-launch      Install Ollama but don't open it
+  --no-app         Don't make the Hoshi Offline Translation app
   -h, --help       Show this help
 EOF
 }
@@ -82,6 +86,7 @@ while [ $# -gt 0 ]; do
     --no-open) DO_OPEN=0; shift ;;
     --no-ollama) DO_OLLAMA=0; shift ;;
     --no-launch) DO_LAUNCH=0; shift ;;
+    --no-app) DO_APP=0; shift ;;
     -h|--help) usage; exit 0 ;;
     *) usage >&2; die "unknown option: $1" ;;
   esac
@@ -141,6 +146,7 @@ OLD_OLLAMA_APP="$(old OLLAMA_APP)"
 OLD_OLLAMA_OURS="$(old OLLAMA_APP_BY_INSTALLER)"
 OLD_WEB_URL="$(old WEB_URL)"
 OLD_WEB_CONTAINER="$(old WEB_CONTAINER)"
+OLD_LAUNCHER="$(old LAUNCHER_APP)"
 CLOSING="" # lines for the end of the run, where they are still on screen
 closing() { CLOSING="$CLOSING  $*"$'\n'; }
 if [ -n "$OLD_BUILT" ]; then
@@ -498,6 +504,68 @@ if [ -f "$HERE/$START" ]; then
   cp "$HERE/$START" "$PREFIX/" && chmod +x "$PREFIX/$START" \
     || die "couldn't copy '$START' into $PREFIX. $COPY_ADVICE"
 fi
+
+# ------------------------------------------------- the app that starts it all
+# What a journalist looks for after a restart: an app in Applications,
+# Launchpad and Spotlight, not a file in a folder. It is made here, on this
+# Mac, so it carries no quarantine for Gatekeeper to stop, from an AppleScript
+# file compiled by osacompile: macOS gives such an app a Dock icon and a
+# progress window, where a plain script set as an app shows nothing at all.
+# It holds no logic: it runs the "Start Translation.command" just copied.
+LAUNCHER_NAME="Hoshi Offline Translation"
+LAUNCHER_ID="local.hoshi.offline-translation"
+LAUNCHER_SOURCE="$HERE/$LAUNCHER_NAME.applescript"
+LAUNCHER="" # the app this run made, or found from an earlier one, and recorded
+make_launcher() { # $1 = the folder it goes in
+  local app="$1/$LAUNCHER_NAME.app" staging="$1/.hoshi-app-from-bundle" made
+  made="$staging/$LAUNCHER_NAME.app"
+  if [ -e "$app" ]; then
+    # Only an app an earlier run of this installer recorded is replaced.
+    if [ "$app" != "$OLD_LAUNCHER" ] \
+        || [ "$(plutil -extract CFBundleIdentifier raw -o - "$app/Contents/Info.plist" 2>/dev/null)" != "$LAUNCHER_ID" ]; then
+      note "an app called '$LAUNCHER_NAME' is already in $1 that this installer didn't put there; leaving it"
+      closing "An app called '$LAUNCHER_NAME' that this installer didn't make is in $1. It was left as it is."
+      closing "  To start translation after a restart, double-click '$START' in $PREFIX."
+      return 1
+    fi
+  fi
+  rm -rf "$staging"
+  mkdir -p "$staging" \
+    && osacompile -o "$made" "$LAUNCHER_SOURCE" 2>/dev/null \
+    && cp "$HERE/icons/hoshi.icns" "$made/Contents/Resources/applet.icns" \
+    && rm -f "$made/Contents/Resources/Assets.car" \
+    && { plutil -remove CFBundleIconName "$made/Contents/Info.plist" 2>/dev/null || true; } \
+    && plutil -replace CFBundleIdentifier -string "$LAUNCHER_ID" "$made/Contents/Info.plist" \
+    && plutil -replace CFBundleShortVersionString -string "${NEW_BUILT%%T*}" "$made/Contents/Info.plist" \
+    && printf '%s\n' "$PREFIX" > "$made/Contents/Resources/install-folder.txt" \
+    && printf '%s\n' "$SUPPORT" > "$made/Contents/Resources/support.txt" \
+    && codesign --force --sign - "$made" >/dev/null 2>&1 \
+    || { rm -rf "$staging"; return 2; }
+  # Made in full beside the old one first, so a failure leaves the old one working.
+  rm -rf "$app" && mv "$made" "$app" || { rm -rf "$staging"; return 2; }
+  rmdir "$staging" 2>/dev/null || true
+  LAUNCHER="$app"
+}
+if [ "$DO_APP" = 1 ] && [ -f "$LAUNCHER_SOURCE" ] && [ -f "$HERE/icons/hoshi.icns" ] && [ -f "$PREFIX/$START" ]; then
+  LAUNCHER_DIR="$APP_DIR"
+  if ! { mkdir -p "$LAUNCHER_DIR" 2>/dev/null && [ -w "$LAUNCHER_DIR" ]; }; then
+    LAUNCHER_DIR="$HOME/Applications"
+    mkdir -p "$LAUNCHER_DIR" 2>/dev/null || true
+  fi
+  say "Making the $LAUNCHER_NAME app in $LAUNCHER_DIR"
+  [ "$LAUNCHER_DIR" = "$APP_DIR" ] || note "$APP_DIR can't be written to by '$(id -un)', so it goes in the Applications folder in the home folder"
+  STATUS=0
+  make_launcher "$LAUNCHER_DIR" || STATUS=$?
+  if [ "$STATUS" = 2 ]; then
+    note "couldn't make the app in $LAUNCHER_DIR; the rest of the install is not affected"
+    closing "The $LAUNCHER_NAME app couldn't be made in $LAUNCHER_DIR. To start translation"
+    closing "  after a restart, double-click '$START' in $PREFIX."
+  fi
+fi
+# An app an earlier run made stays recorded while it is there, so a later run
+# that couldn't make one doesn't forget it.
+if [ -z "$LAUNCHER" ] && [ -n "$OLD_LAUNCHER" ] && [ -d "$OLD_LAUNCHER" ]; then LAUNCHER="$OLD_LAUNCHER"; fi
+
 # A copy to practise on, so translations of it aren't written into the bundle.
 TEST_FILES=""
 if [ -d "$HERE/test-files" ]; then
@@ -537,6 +605,7 @@ fi
     echo "OLLAMA_APP_BY_INSTALLER=${OLD_OLLAMA_OURS:-0}"
   fi
   [ -z "$LEFT_MODELS" ] || echo "GEMMA_MODELS_PREVIOUS=$LEFT_MODELS"
+  [ -z "$LAUNCHER" ] || echo "LAUNCHER_APP=$LAUNCHER"
 } >> "$PREFIX/bundle.env" || die "couldn't write this install's settings into $PREFIX/bundle.env. $COPY_ADVICE"
 
 # ---------------------------------------------------------- translation page
@@ -623,8 +692,20 @@ cat <<EOF
   Files to try     ${TEST_FILES:-none in this bundle}
   Log of this run  $TRANSLATION_INSTALL_LOG
 
+EOF
+if [ -n "$LAUNCHER" ]; then
+  cat <<EOF
+
+  After the Mac restarts, open "$LAUNCHER_NAME" from $(dirname "$LAUNCHER")
+  (or from Launchpad, or by typing its name in Spotlight) to start everything
+  again. "$START" in $PREFIX does the same in a Terminal window.
+EOF
+else
+  cat <<EOF
+
   After the Mac restarts, double-click "$START" in
   $PREFIX to start everything again.
 EOF
+fi
 [ -z "$CLOSING" ] || printf '\n%s' "$CLOSING"
 if [ "$DO_WEB" = 1 ] && [ "$DO_OPEN" = 1 ]; then open "$WEB_URL" || true; fi
