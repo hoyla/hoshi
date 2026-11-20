@@ -18,6 +18,7 @@ function Write-TestCall([string]$Command, $Values) {
 }
 
 $stateFile = Join-Path $testRoot 'state.json'
+$removedImages = Join-Path $testRoot 'removed-images.txt'
 
 function Get-TestContainers {
   $prop = (Get-Content -Raw -LiteralPath $stateFile | ConvertFrom-Json).PSObject.Properties['containers']
@@ -42,6 +43,16 @@ function docker {
     if (Test-Setting 'load_fails') { $global:LASTEXITCODE = 1; return }
     if (-not [System.IO.File]::Exists($args[-1])) { throw 'test image missing' }
     'Loaded image'
+  } elseif ($args[0] -eq 'image' -and $args[1] -eq 'inspect' -and $args[-1] -eq 'sha256:old-image') {
+    # The image an earlier install recorded, where a test says there is one.
+    if (-not (Test-Setting 'old_image_present') -or [System.IO.File]::Exists($removedImages)) { $global:LASTEXITCODE = 1; return }
+    if ($args -contains '{{.Size}}') { '10737418240' } else { $args[-1] }
+  } elseif ($args[0] -eq 'image' -and $args[1] -eq 'rm') {
+    if (Test-Setting 'image_rm_fails') { $global:LASTEXITCODE = 1; return }
+    [System.IO.File]::AppendAllText($removedImages, [string]$args[-1] + "`n")
+  } elseif ($args[0] -eq 'ps') {
+    if (Test-Setting 'old_image_in_use') { 'someone-elses-container' }
+  } elseif ($args[0] -eq 'start') {
   } elseif ($args[0] -eq 'image' -and $args[1] -eq 'inspect') {
     if ((Test-Setting 'image_missing') -or ((Test-Setting 'tag_missing') -and -not $byId)) { $global:LASTEXITCODE = 1; return }
     if ((Test-Setting 'tag_moved') -and -not $byId) { 'sha256:moved-tag-image' } else { 'sha256:test-loaded-image' }
@@ -102,6 +113,19 @@ function Start-Process {
 }
 
 function Start-Sleep { param($Seconds) }
+
+# Free disk space and memory are the test's to set. Left alone, memory is
+# 16 GB and the installer falls back to asking .NET for the real free space.
+function Get-CimInstance {
+  param([string]$ClassName, [string]$Filter)
+  if ($ClassName -eq 'Win32_LogicalDisk') {
+    if (Test-Setting 'disk_free_kb') { return New-Object PSObject -Property @{ FreeSpace = [long](Test-Setting 'disk_free_kb') * 1024 } }
+    return $null
+  }
+  $gigabytes = 16
+  if (Test-Setting 'memory_gb') { $gigabytes = [long](Test-Setting 'memory_gb') }
+  return New-Object PSObject -Property @{ TotalPhysicalMemory = $gigabytes * 1GB }
+}
 
 # Test-Url still executes its real .NET request code. Its transport is replaced
 # in this process so no network service or occupied listening port is needed.

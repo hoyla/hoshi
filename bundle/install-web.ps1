@@ -213,6 +213,9 @@ try {
     if (-not $ours) { Die "a container named '$NAME' exists that this installer didn't create; remove it or pass --name" }
     Note "replacing the '$NAME' container from an earlier install"
     & docker rm -f $NAME | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+      Die "Docker couldn't remove the '$NAME' container from the earlier install; its message is above. Quit Docker Desktop, open it again, wait until it says it is running, then run this again."
+    }
   }
   if (Test-PortInUse ([int]$PORT)) { Die "port $PORT is already in use; pass --port with a free one" }
 
@@ -266,6 +269,9 @@ try {
     & docker logs --tail 30 $NAME
     Die 'the page did not start; log above'
   }
+  # Where the page is, for "Start Translation" to find after a restart.
+  $kept = @([System.IO.File]::ReadAllLines($ENVFILE) | Where-Object { $_ -notmatch '^(WEB_URL|WEB_CONTAINER)=' })
+  [System.IO.File]::WriteAllText($ENVFILE, (($kept + @("WEB_URL=$URL", "WEB_CONTAINER=$NAME")) -join "`n") + "`n")
 
   if ($STANDALONE) {
     $states = @{}

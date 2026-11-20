@@ -141,7 +141,8 @@ if docker container inspect "$NAME" >/dev/null 2>&1; then
   [ "$OURS" = "1" ] \
     || die "a container named '$NAME' exists that this installer didn't create; remove it or pass --name"
   note "replacing the '$NAME' container from an earlier install"
-  docker rm -f "$NAME" >/dev/null
+  docker rm -f "$NAME" >/dev/null \
+    || die "Docker couldn't remove the '$NAME' container from the earlier install; its message is above. Quit Docker Desktop, open it again, wait until it says it is running, then run this again."
 fi
 if nc -z 127.0.0.1 "$PORT" >/dev/null 2>&1; then
   die "port $PORT is already in use; pass --port with a free one"
@@ -150,10 +151,10 @@ fi
 # ---------------------------------------------------------------- the files
 if [ "$HERE/web" != "$PREFIX/web" ]; then
   say "Copying the page into $PREFIX/web"
-  mkdir -p "$PREFIX/web"
-  ditto "$HERE/web" "$PREFIX/web"
+  mkdir -p "$PREFIX/web" && ditto "$HERE/web" "$PREFIX/web" \
+    || die "couldn't copy the page's files into $PREFIX/web; the message above says why. If the disk is full, free some space, then run this again."
 fi
-mkdir -p "$FOLDER"
+mkdir -p "$FOLDER" || die "couldn't create $FOLDER, where the page saves translations; pass --folder with a folder you can write to"
 FOLDER="$(cd "$FOLDER" && pwd -P)"
 
 # ---------------------------------------------------------------- container
@@ -177,7 +178,8 @@ docker run -d --name "$NAME" --label airgapped-translation=1 \
   -e OLLAMA_API="http://host.docker.internal:${OLLAMA_ADDRESS##*:}" \
   -e LT_IMAGE="$IMAGE" -e LT_IMAGE_ID="$IMAGE_ID" \
   -e GEMMA_MODELS="$(cfg GEMMA_MODELS)" -e DEFAULT_MODEL="$(cfg DEFAULT_MODEL)" \
-  --entrypoint /app/venv/bin/python "$IMAGE_ID" -u /opt/translation-web/app.py >/dev/null
+  --entrypoint /app/venv/bin/python "$IMAGE_ID" -u /opt/translation-web/app.py >/dev/null \
+  || die "Docker couldn't start the page; its message is above. If it speaks of a port, pass --port with a free one. If it speaks of a folder it may not share, allow $PREFIX in Docker Desktop under Settings > Resources > File sharing. Then run this again."
 
 CONFIG=""
 for _ in $(seq 1 30); do
@@ -185,6 +187,10 @@ for _ in $(seq 1 30); do
   sleep 1
 done
 [ -n "$CONFIG" ] || { docker logs "$NAME" 2>&1 | tail -30 >&2; die "the page did not start; log above"; }
+# Where the page is, for "Start Translation" to find after a restart.
+SETTINGS="$(grep -v -e '^WEB_URL=' -e '^WEB_CONTAINER=' "$PREFIX/bundle.env" || true)"
+printf '%s\nWEB_URL=%s\nWEB_CONTAINER=%s\n' "$SETTINGS" "$URL" "$NAME" > "$PREFIX/bundle.env" \
+  || die "couldn't record the page's address in $PREFIX/bundle.env"
 [ "$STANDALONE" = 1 ] || exit 0
 
 engine() { # $1 = gemma or libre: whether the page can reach it

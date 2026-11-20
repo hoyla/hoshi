@@ -28,6 +28,7 @@ Contents of this guide:
     Copying the bundle to the computer
     Installing on a Mac
     Installing on Windows
+    Installing a newer bundle over an older one
     Using it
     Trying it on the test files
     Languages and file types that give trouble
@@ -104,20 +105,27 @@ does anything, so a file damaged in copying is caught rather than installed.
 
 INSTALLING ON A MAC
 -------------------
-Open Terminal (in Applications > Utilities), type cd and a space, drag this
-folder into the Terminal window, and press Return. Then run:
+Open this folder in Finder and double-click Install.command. (Depending on
+your settings it may show as just "Install".)
 
-    ./install.sh
+A Terminal window opens and reports each step. First it checks the Mac: the
+macOS version, that the two ports it uses are free, that there is enough
+free disk space, and how much memory there is. If one of these will not do,
+it says so now, in a minute, and not half an hour in. Then it checks the
+files, loads LibreTranslate into Docker, copies Ollama.app into
+/Applications and the models into ~/.ollama/models, and puts the
+translate.sh helper and some test files in ~/translation-tools. It starts
+the translation page, runs a test translation through each engine, and
+finishes by opening the page in your browser. Allow 15 to 30 minutes.
 
-It checks the files, loads LibreTranslate into Docker, copies Ollama.app into
-/Applications and the model into ~/.ollama/models, and puts the translate.sh
-helper and some test files in ~/translation-tools. It starts the translation
-page, runs a test translation through each engine, and finishes by opening
-the page in your browser. Allow 15 to 30 minutes. It is safe to run again.
+The window stays open at the end. It says either "The install finished",
+with a summary above that line, or "The install did NOT finish", with the
+step it stopped at, what to do, and where the record of the run is. Read
+it, then press Return to close the window. It is safe to run again.
 
 If the Mac has no Docker
-    The installer says so and waits for you to press Return. It then
-    installs Docker Desktop from this folder:
+    The installer says so near the start and waits for you to press Return.
+    It then installs Docker Desktop from this folder:
 
       1. Type the Mac's administrator password when Terminal asks for it.
          Nothing shows as you type. Press Return.
@@ -131,11 +139,24 @@ If the Mac has no Docker
 
 If Docker is installed but not open, the installer opens it and waits.
 
+If the Mac has less than 16 GB of memory, the installer warns you and
+carries on. LibreTranslate is not affected; TranslateGemma's standard model
+may be very slow or fail to load, and the smaller one (4b) is the one to
+try.
+
 Every run writes a log of what it did and what it found, named
 install-DATE.log, in ~/translation-tools. If an install fails, that file
 holds everything the installer printed.
 
-Run ./install.sh --help for options (different port, skip one engine, etc).
+If double-clicking does not work, or you want the options
+    Open Terminal (in Applications > Utilities), type cd and a space, drag
+    this folder into the Terminal window, and press Return. Then run:
+
+        ./install.sh
+
+    It is the same installer; Install.command only runs it for you.
+    ./install.sh --help lists the options (different port, skip one engine,
+    etc).
 
 A newer translation page may reach you later as a small folder of its own.
 Its README.txt says how to install it; it replaces the page and changes
@@ -150,7 +171,10 @@ INSTALLING ON WINDOWS
      (Depending on your settings it may show as just "install", of type
      "Windows Command Script".)
 
-A black window opens and reports each step. It checks the files, loads
+A black window opens and reports each step. First it checks the PC: that the
+two ports it uses are free, that there is enough free disk space, and how
+much memory there is. If one of these will not do, it says so now, in a
+minute, and not half an hour in. Then it checks the files, loads
 LibreTranslate into Docker, copies the model into the .ollama folder in your
 user folder, installs Ollama for your user account, and puts the translate
 helper and some test files in the translation-tools folder in your user
@@ -160,6 +184,12 @@ in your browser. Allow 10 to 30 minutes. When it says "Press any key to
 continue", read the summary above that line, then press a key to close the
 window. It is safe to run again.
 
+If the install stops, the window says "The install did not finish", the
+step it stopped at, and what to do. Each run also writes a record named
+install-DATE.log in the translation-tools folder in your user folder. It
+holds what the installer itself printed; some of what Docker printed may be
+missing from it.
+
 If Windows shows a blue "Windows protected your PC" box, choose More info,
 then Run anyway.
 
@@ -168,6 +198,34 @@ this folder and run:   install.cmd --help
 
 A newer translation page may reach you later as a small folder of its own,
 as on a Mac. Its README.txt says how to install it.
+
+
+INSTALLING A NEWER BUNDLE OVER AN OLDER ONE
+-------------------------------------------
+Install the newer bundle exactly as you installed the first: there is
+nothing to remove beforehand. Your translations, in the translations folder
+inside translation-tools, are kept.
+
+Near the start the installer says which bundle the computer has and which
+one you are installing, each by the time it was built. If the one you are
+installing is OLDER, it says so in capitals, and again at the end; it does
+not stop. If they are the same, running it repairs the install.
+
+Once the new LibreTranslate has made its test translation, the installer
+removes the older bundle's LibreTranslate from Docker, which frees 9 to
+11 GB. It leaves it if anything else in Docker still uses it, and says so.
+
+A TranslateGemma model that the older bundle had and the newer one lacks
+(the large 27b model, for example, which takes 17 GB) is NOT removed: it
+still works and you may want it. The end of the install lists each such
+model, how much space it holds, and the exact command that removes it.
+
+Ollama itself is replaced by the newer bundle's version only if an earlier
+install from one of these bundles put it on the computer. An Ollama that was
+there before is never replaced; "If something goes wrong" says how to
+switch by hand. (A bundle made before this was written kept no note of
+having installed Ollama, so the first newer bundle over one of those leaves
+Ollama alone as well.)
 
 
 USING IT
@@ -509,17 +567,43 @@ A translation with no warnings can still be wrong.
 
 AFTER A RESTART
 ---------------
-Start Docker Desktop; LibreTranslate and the translation page come back by
-themselves.
+On a Mac, open the translation-tools folder in your home folder and
+double-click "Start Translation.command". On Windows, open the
+translation-tools folder in your user folder and double-click
+"Start Translation" (of type "Windows Command Script").
 
-For TranslateGemma, Ollama has to be running. On a Mac, open Ollama from
-Applications. On Windows it normally starts when you sign in (a llama icon
-near the clock); if it has not, open Ollama from the Start menu.
+It opens Docker Desktop and Ollama if they are not running, waits for
+LibreTranslate, TranslateGemma and the translation page, and opens the page
+in your browser. Allow a few minutes after a restart. If one of the three
+does not answer, it says which one and what to do about it. It installs
+nothing and can be used as often as you like. You may drag it to the Dock
+(Mac) or make a shortcut to it on the desktop (Windows); leave the file
+itself where it is.
+
+By hand, the same thing: start Docker Desktop, and LibreTranslate and the
+translation page come back by themselves. For TranslateGemma, Ollama has to
+be running. On a Mac, open Ollama from Applications. On Windows it normally
+starts when you sign in (a llama icon near the clock); if it has not, open
+Ollama from the Start menu.
 
 
 IF SOMETHING GOES WRONG
 -----------------------
 On either kind of computer
+
+"The install did not finish"
+    These lines end any install that stopped. They name the step it stopped
+    at; the reason is in the lines just above them, and often says what to
+    do. Nothing that was on the computer before is harmed by a stopped
+    install, and running the installer again is safe: it picks up what is
+    already done. If the bundle's builder gave a name to ask for help, it
+    is the last of those lines. Send them the log file the lines name.
+
+"not enough free disk space"
+    The installer adds up what it is about to copy and compares that with
+    the free space on the computer's own disk. Free some space and run it
+    again. If you are sure there is room (the sum is an estimate), run it
+    with --no-space-check.
 
 "Docker isn't running" or "Docker didn't become ready"
     Open Docker Desktop yourself and wait until it says it is running. It
@@ -531,7 +615,8 @@ On either kind of computer
     error name the files. Copy those again from the original and re-run.
 
 "port 5050 is already in use"
-    Run the installer again with --port 5051 (the helper remembers the port).
+    Another program on this computer is using that port. Run the installer
+    again with --port 5051 (the helper remembers the port).
 
 "couldn't reach Ollama"
     Open Ollama (Applications on a Mac, the Start menu on Windows) and try
@@ -549,9 +634,16 @@ On either kind of computer
     --engine libre.
 
 Ollama was already installed in an older version
-    The installer leaves an existing Ollama alone. To switch to the bundled
-    one: quit Ollama, remove the old one (move the app to the Trash on a
-    Mac; Settings > Apps on Windows), and run the installer again.
+    The installer leaves alone an Ollama it did not install itself. To
+    switch to the bundled one: quit Ollama, remove the old one (move the
+    app to the Trash on a Mac; Settings > Apps on Windows), and run the
+    installer again. Your models are kept.
+
+"Start Translation" says something is NOT answering
+    It names which of the three it is and what to do. Most often Docker
+    Desktop is showing a window that wants an answer: accept its agreement
+    if asked, skip signing in and updating, wait until it says it is
+    running, and double-click "Start Translation" again.
 
 "port 5080, which the translation page uses, is already in use"
     Run the installer again with --web-port 5081. The page is then at
@@ -567,6 +659,16 @@ http://127.0.0.1:5050 shows "Not Found"
     translation page is installed; use http://127.0.0.1:5080.
 
 On a Mac
+
+Install.command will not open ("cannot be opened", "unidentified developer",
+or nothing happens)
+    macOS can refuse a script that reached the Mac by download, email or
+    AirDrop rather than on a drive. Use the Terminal way under "Installing
+    on a Mac" instead; it does the same thing.
+
+"Ollama is still running and can't be replaced while it is"
+    Click the llama in the menu bar, choose Quit Ollama, and run the
+    installer again.
 
 "Docker's installer failed"
     The lines above the error are Docker's own. To install it by hand,

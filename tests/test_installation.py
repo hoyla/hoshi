@@ -57,7 +57,8 @@ class BundleFixture:
             if name.upper() == "PSMODULEPATH":
                 del self.environment[name]
         for name in ("install.sh", "install.ps1", "install.cmd", "install-web.sh", "install-web.ps1",
-                     "install-web.cmd", "languages.tsv"):
+                     "install-web.cmd", "languages.tsv", "Install.command", "Start Translation.command",
+                     "Start Translation.cmd", "start-translation.ps1"):
             data = (ROOT / "bundle" / name).read_bytes()
             if name.endswith(".cmd"):
                 data = data.replace(b"\r\n", b"\n").replace(b"\n", b"\r\n")
@@ -112,7 +113,7 @@ exit 0
                 entries.append(f"{digest}  ./{path.relative_to(self.bundle).as_posix()}\n")
         self.write("SHA256SUMS", "".join(entries))
 
-    def run_installer(self, *options, success=True):
+    def run_command(self, command, success=True):
         (self.root / "settings.json").write_text(json.dumps(self.settings))
         env = dict(self.environment)
         for setting, variable in (("libre_down", "HOSHI_TEST_LIBRE_DOWN"),
@@ -120,12 +121,30 @@ exit 0
                                   ("web_down", "HOSHI_TEST_WEB_DOWN"),
                                   ("translation_fails", "HOSHI_TEST_TRANSLATION_FAIL")):
             env[variable] = "1" if self.settings.get(setting) else "0"
-        done = subprocess.run(self.command(*options), env=env, input="\n",
-                              capture_output=True, text=True, timeout=40)
+        done = subprocess.run(command, env=env, input="\n", capture_output=True, text=True, timeout=40)
         self.assertEqual(done.returncode == 0, success, done.stdout + done.stderr)
-        if success:
-            self.assertIn("==> Done", done.stdout)
         return done.stdout + done.stderr
+
+    def run_installer(self, *options, success=True):
+        output = self.run_command(self.command(*options), success)
+        if success:
+            self.assertIn("==> Done", output)
+        return output
+
+    def set_bundle(self, **values):
+        """Change lines of the bundle's bundle.env, as a different build would."""
+        lines = [line for line in (self.bundle / "bundle.env").read_text().splitlines()
+                 if line.split("=", 1)[0] not in values]
+        self.write("bundle.env", "\n".join(lines + [f"{key}={value}" for key, value in values.items()]) + "\n")
+        self.checksums()
+
+    def earlier_install(self, text):
+        """The bundle.env an earlier install would have left in the prefix."""
+        self.prefix.mkdir(exist_ok=True)
+        (self.prefix / "bundle.env").write_text(text)
+
+    def installed(self):
+        return (self.prefix / "bundle.env").read_text(encoding="utf-8-sig")
 
     def calls(self, command):
         path = self.root / "calls.jsonl"
@@ -141,6 +160,27 @@ exit 0
         self.assertFalse(self.calls("robocopy"))
 
 
+@unittest.skipUnless(sys.platform == "darwin", "the build script runs on a Mac")
+class BundleBuildTests(unittest.TestCase):
+    """What can be said of build-bundle.sh without Docker: a real build needs both engines."""
+
+    def test_build_copies_the_launchers_it_ships(self):
+        build = (ROOT / "build-bundle.sh").read_text()
+        for name in ("Install.command", "Start Translation.command", "Start Translation.cmd",
+                     "start-translation.ps1"):
+            with self.subTest(name=name):
+                self.assertTrue((ROOT / "bundle" / name).is_file())
+                self.assertIn(name, build)
+        for name in ("Install.command", "Start Translation.command"):
+            self.assertTrue(os.access(ROOT / "bundle" / name, os.X_OK), name)
+
+    def test_support_line_must_be_one_line(self):
+        done = subprocess.run(["/bin/bash", str(ROOT / "build-bundle.sh"), "--support", "Sam\n020 7946 0000"],
+                              capture_output=True, text=True, timeout=20)
+        self.assertNotEqual(done.returncode, 0)
+        self.assertIn("one line", done.stderr)
+
+
 class InstallerCases:
     web_name = "translation-web"
 
@@ -148,7 +188,7 @@ class InstallerCases:
         return [call for call in self.calls("docker") if call[0] == "run" and "-d" in call]
 
     def test_install_copies_payload_and_records_actual_image(self):
-        self.run_installer()
+        message = self.run_installer()
         self.assertEqual((self.prefix / self.helper).read_bytes(), (self.bundle / self.helper).read_bytes())
         self.assertEqual((self.models / "blobs/test-model").read_bytes(), b"fixture: ollama/models/blobs/test-model\n")
         self.assertTrue((self.prefix / "test-files/example.txt").is_file())
@@ -162,13 +202,20 @@ class InstallerCases:
         self.assertEqual(run[run.index("--pull") + 1], "never")
         self.assertEqual(run[-1], "sha256:test-loaded-image")
         self.assertIn("--engine gemma", (self.root / "helper-calls.txt").read_text())
+        self.assertNotIn("did not finish", message)
+        self.assertNotIn("already has an install", message)
+        self.assertNotIn("GB of memory", message.split("==> Done")[1]) # 16 GB here: nothing to remark on
 
     def test_rerun_replaces_only_our_container_and_keeps_translations(self):
+        self.settings["old_image_present"] = True # in Docker, but no install of ours recorded it
         self.run_installer()
         translation = self.prefix / "keep.en.txt"
         translation.write_text("Existing translation.\n")
-        self.run_installer()
+        message = self.run_installer()
         self.assertEqual(translation.read_text(), "Existing translation.\n")
+        self.assertIn("built 2026-11-18T00:00:00Z from commit fixture-commit", message)
+        self.assertIn("same bundle", message)
+        self.assertEqual(self.image_removals(), [])
         removals = [call for call in self.calls("docker") if call[0] == "rm"]
         self.assertEqual(removals, [["rm", "-f", "test-libre"], ["rm", "-f", self.web_name]])
 
@@ -225,7 +272,9 @@ class InstallerCases:
         else:
             message = self.run_installer(success=False)
         self.assertIn("already in use", message)
-        self.assertFalse(any(call[0] == "run" and "-d" in call for call in self.calls("docker")))
+        # found before the checksum pass and the image load, not after them
+        self.assertNotIn("Verifying the bundle's checksums", message)
+        self.assert_not_started()
 
     def test_image_load_failure_is_reported(self):
         self.settings["load_fails"] = True
@@ -239,9 +288,11 @@ class InstallerCases:
         self.assertIn("couldn't read the loaded", self.run_installer(success=False))
         self.assertFalse(any(call[0] in ("rm", "run") for call in self.calls("docker")[calls_before:]))
 
-    def test_container_start_failure_is_not_reported_as_done(self):
+    def test_container_start_failure_says_what_to_do(self):
         self.settings["run_fails"] = True
-        self.assertNotIn("==> Done", self.run_installer(success=False))
+        message = self.run_installer(success=False)
+        self.assertNotIn("==> Done", message)
+        self.assertIn("couldn't start LibreTranslate", message)
 
     def test_libre_unavailable_is_reported(self):
         self.settings["libre_down"] = True
@@ -251,9 +302,12 @@ class InstallerCases:
         self.settings["translation_fails"] = True
         self.assertIn("test translation failed", self.run_installer(success=False))
 
-    def test_copy_failure_is_not_reported_as_done(self):
+    def test_model_copy_failure_says_what_to_do(self):
+        self.existing_ollama() # so that the models are the only thing copied
         self.settings["copy_fails"] = True
-        self.assertNotIn("==> Done", self.run_installer(success=False))
+        message = self.run_installer("--no-docker", success=False)
+        self.assertNotIn("==> Done", message)
+        self.assertIn("couldn't copy the TranslateGemma models", message)
 
     def test_ollama_not_ready_is_explained(self):
         self.settings["ollama_down"] = True
@@ -270,6 +324,152 @@ class InstallerCases:
         path = self.root / "helper-calls.txt"
         self.assertNotIn("--engine gemma", path.read_text() if path.exists() else "")
 
+    # ---- checks made before any slow step
+    def test_too_little_disk_space_stops_before_anything_is_installed(self):
+        self.settings["disk_free_kb"] = 2000
+        message = self.run_installer(success=False)
+        self.assertIn("not enough free disk space", message)
+        self.assertNotIn("Verifying the bundle's checksums", message)
+        self.assert_not_started()
+
+    def test_space_check_can_be_turned_off(self):
+        self.settings["disk_free_kb"] = 2000
+        self.run_installer("--no-space-check")
+
+    def test_low_memory_warns_and_carries_on(self):
+        self.settings["memory_gb"] = 8
+        message = self.run_installer()
+        self.assertIn("8 GB of memory", message)
+        # said again at the end, where it is still on screen
+        self.assertIn("8 GB of memory", message.split("==> Done")[1])
+
+    # ---- installing over an earlier install
+    def test_reinstall_says_when_the_bundle_is_newer_and_when_it_is_older(self):
+        self.run_installer()
+        self.set_bundle(BUNDLE_BUILT_UTC="2026-11-19T00:00:00Z", SOURCE_COMMIT="newer-commit")
+        message = self.run_installer()
+        self.assertIn("newer-commit", message)
+        self.assertIn("is newer", message)
+        self.assertNotIn("OLDER", message)
+        self.set_bundle(BUNDLE_BUILT_UTC="2026-11-01T00:00:00Z", SOURCE_COMMIT="older-commit")
+        message = self.run_installer()
+        self.assertIn("IS OLDER", message)
+        self.assertIn("OLDER bundle", message.split("==> Done")[1])
+
+    def previous_image(self):
+        self.earlier_install("BUNDLE_BUILT_UTC=2026-10-01T00:00:00Z\nSOURCE_COMMIT=earlier\n"
+                             "LT_IMAGE_ID_INSTALLED=sha256:old-image\n")
+        self.settings["old_image_present"] = True
+
+    def image_removals(self):
+        return [call for call in self.calls("docker") if call[:2] == ["image", "rm"]]
+
+    def test_earlier_installs_image_is_removed_once_the_new_one_works(self):
+        self.previous_image()
+        self.assertIn("removed sha256:old-image", self.run_installer())
+        calls = self.calls("docker")
+        self.assertEqual(self.image_removals(), [["image", "rm", "sha256:old-image"]])
+        # after both containers have been started on the new image
+        last_start = max(index for index, call in enumerate(calls) if call[0] == "run" and "-d" in call)
+        self.assertGreater(calls.index(["image", "rm", "sha256:old-image"]), last_start)
+
+    def test_earlier_image_in_use_by_a_container_is_kept(self):
+        self.previous_image()
+        self.settings["old_image_in_use"] = True
+        self.assertIn("still uses it", self.run_installer())
+        self.assertEqual(self.image_removals(), [])
+
+    def test_earlier_image_is_still_removed_by_the_run_after_a_failed_one(self):
+        self.previous_image()
+        self.settings["web_down"] = True
+        self.run_installer(success=False)
+        self.assertEqual(self.image_removals(), []) # not while the new install isn't working
+        self.assertIn("LT_IMAGE_ID_PREVIOUS=sha256:old-image", self.installed())
+        del self.settings["web_down"]
+        self.run_installer()
+        self.assertEqual(self.image_removals(), [["image", "rm", "sha256:old-image"]])
+
+    def test_model_the_new_bundle_lacks_is_listed_and_left(self):
+        self.earlier_install("BUNDLE_BUILT_UTC=2026-10-01T00:00:00Z\n"
+                             "GEMMA_MODELS=translategemma:27b,translategemma:1b,translategemma:12b\n")
+        manifest = self.models / "manifests/registry.ollama.ai/library/translategemma/27b"
+        manifest.parent.mkdir(parents=True)
+        manifest.write_text('{"config":{"digest":"sha256:c","size":1073741824},'
+                            '"layers":[{"digest":"sha256:a","size":16106127360},{"digest":"sha256:b","size":1073741824}]}')
+        closing = self.run_installer().split("==> Done")[1]
+        self.assertIn("translategemma:27b", closing)
+        self.assertIn("17.0 GB", closing)
+        self.assertRegex(closing, r'ollama(\.exe)?" rm translategemma:27b')
+        self.assertNotIn("rm translategemma:12b", closing) # the new bundle carries it
+        self.assertNotIn("translategemma:1b", closing) # no longer on the computer
+        self.assertTrue(manifest.is_file())
+        # still said by the next run, for as long as the model is there
+        self.assertIn("rm translategemma:27b", self.run_installer())
+
+    def test_ollama_an_earlier_install_put_there_is_replaced_by_a_newer_one(self):
+        self.run_installer()
+        self.assertIn("OLLAMA_APP_BY_INSTALLER=1", self.installed())
+        self.newer_ollama_in_bundle()
+        self.assertIn("Replacing Ollama", self.run_installer())
+        self.assert_ollama_installs(2)
+        self.assertIn("OLLAMA_APP_BY_INSTALLER=1", self.installed())
+
+    def test_ollama_that_was_already_there_is_never_replaced(self):
+        self.existing_ollama()
+        self.newer_ollama_in_bundle()
+        message = self.run_installer()
+        self.assertIn("leaving it as it is", message)
+        self.assertIn("To switch", message)
+        self.assert_ollama_installs(0)
+        self.assertIn("OLLAMA_APP_BY_INSTALLER=0", self.installed())
+        # and a second run does not take the first run's record as its own work
+        self.assertIn("leaving it as it is", self.run_installer())
+        self.assert_ollama_installs(0)
+
+    # ---- failures
+    def test_failure_ends_with_what_stopped_and_that_a_rerun_is_safe(self):
+        self.settings["load_fails"] = True
+        message = self.run_installer(success=False)
+        closing = message.split("The install did not finish")[1]
+        self.assertIn("It stopped at this step: Loading libretranslate-offline", closing)
+        self.assertIn("safe to run the installer again", closing)
+        self.assertNotIn("For help", closing)
+        (log,) = self.prefix.glob("install-*.log")
+        self.assertIn(str(log), closing)
+        self.assertIn("docker load failed", log.read_text(encoding="utf-8-sig"))
+
+    def test_failure_gives_the_builders_support_line(self):
+        self.set_bundle(SUPPORT="Sam on the data desk, extension 4321")
+        self.settings["load_fails"] = True
+        self.assertIn("For help: Sam on the data desk, extension 4321", self.run_installer(success=False))
+
+
+
+    # ---- starting again after a restart
+    def test_start_translation_opens_the_page_and_names_what_is_not_answering(self):
+        self.run_installer("--no-open")
+        self.assertIn(f"WEB_URL=http://127.0.0.1:{self.web_port}", self.installed())
+        (self.root / "calls.jsonl").unlink()
+        message = self.run_command(self.start_command())
+        self.assertNotIn("NOT answering", message)
+        self.assertEqual(self.opened_pages(), [f"http://127.0.0.1:{self.web_port}"])
+        for setting, name, others in (("libre_down", "LibreTranslate", ("TranslateGemma    NOT",)),
+                                      ("ollama_down", "TranslateGemma", ("LibreTranslate    NOT",)),
+                                      ("web_down", "Translation page", ("LibreTranslate    NOT", "TranslateGemma    NOT"))):
+            with self.subTest(setting=setting):
+                self.settings = {setting: True}
+                (self.root / "calls.jsonl").unlink()
+                message = self.run_command(self.start_command(), success=False)
+                self.assertRegex(message, name + r" +NOT answering")
+                for other in others:
+                    self.assertNotIn(other, message)
+                # the page is still worth opening with one engine down, but not if it is the page that is down
+                self.assertEqual(bool(self.opened_pages()), setting != "web_down")
+
+    def test_start_translation_from_the_bundle_folder_says_to_install_first(self):
+        self.prefix = self.bundle # the copy on the drive, which nothing was installed from
+        self.assertIn("isn't installed", self.run_command(self.start_command(), success=False))
+
 
 class MacFixture(BundleFixture):
     def setUp(self):
@@ -281,7 +481,8 @@ class MacFixture(BundleFixture):
         launcher = self.root / "stand-in"
         launcher.write_text("#!" + sys.executable + "\n" + (ROOT / "tests/install_stubs.py").read_text())
         launcher.chmod(0o755)
-        for command in ("uname", "sysctl", "docker", "curl", "nc", "open", "ditto", "seq", "sleep", "sudo", "hdiutil"):
+        for command in ("uname", "sysctl", "docker", "curl", "nc", "open", "ditto", "seq", "sleep", "sudo", "hdiutil",
+                        "df", "osascript", "pgrep"):
             (binary_folder / command).symlink_to(launcher)
         self.environment["PATH"] = str(binary_folder) + os.pathsep + os.environ["PATH"]
 
@@ -294,6 +495,61 @@ class MacInstallerTests(MacFixture, InstallerCases, unittest.TestCase):
         return ["/bin/bash", str(self.bundle / "install.sh"), "--prefix", str(self.prefix),
                 "--app-dir", str(self.apps), "--port", self.port, "--name", "test-libre",
                 "--web-port", self.web_port, *options]
+
+    start_script = "Start Translation.command"
+
+    def start_command(self):
+        return ["/bin/bash", str(self.prefix / self.start_script)]
+
+    def opened_pages(self):
+        return [call[0] for call in self.calls("open") if call[0].startswith("http://")]
+
+    def newer_ollama_in_bundle(self):
+        with zipfile.ZipFile(self.bundle / "ollama/Ollama-darwin.zip", "w") as archive:
+            archive.writestr("Ollama.app/Contents/Info.plist", plistlib.dumps({"CFBundleShortVersionString": "0.0.2"}))
+        self.set_bundle(OLLAMA_VERSION="v0.0.2")
+
+    def existing_ollama(self):
+        plist = self.apps / "Ollama.app/Contents/Info.plist"
+        plist.parent.mkdir(parents=True)
+        plist.write_bytes(plistlib.dumps({"CFBundleShortVersionString": "0.0.1"}))
+        (plist.parent / "theirs.txt").write_text("not the installer's\n")
+
+    def assert_ollama_installs(self, count):
+        unpacked = [call for call in self.calls("ditto") if call[:2] == ["-x", "-k"]]
+        self.assertEqual(len(unpacked), count)
+        plist = plistlib.loads((self.apps / "Ollama.app/Contents/Info.plist").read_bytes())
+        self.assertEqual(plist["CFBundleShortVersionString"], "0.0.2" if count == 2 else "0.0.1")
+        self.assertEqual((self.apps / "Ollama.app/Contents/theirs.txt").exists(), count == 0)
+        self.assertFalse((self.apps / ".ollama-from-bundle").exists())
+
+    def test_running_ollama_that_will_not_quit_is_not_replaced(self):
+        self.run_installer()
+        self.newer_ollama_in_bundle()
+        self.settings["ollama_wont_quit"] = True
+        self.assertIn("still running", self.run_installer(success=False))
+        plist = plistlib.loads((self.apps / "Ollama.app/Contents/Info.plist").read_bytes())
+        self.assertEqual(plist["CFBundleShortVersionString"], "0.0.1")
+
+    def test_install_command_runs_the_installer_from_its_own_folder(self):
+        launcher = self.bundle / "Install.command"
+        self.assertTrue(os.access(ROOT / "bundle/Install.command", os.X_OK))
+        options = self.command()[2:]
+        message = self.run_command(["/bin/bash", str(launcher), *options])
+        self.assertIn("==> Done", message)
+        self.assertIn("The install finished", message)
+        self.settings["load_fails"] = True
+        message = self.run_command(["/bin/bash", str(launcher), *options], success=False)
+        self.assertIn("did NOT finish", message)
+
+    def test_old_macos_is_refused_before_anything_is_installed(self):
+        tool = self.root / "bin/sw_vers"
+        tool.write_text("#!/bin/sh\necho 13.6\n")
+        tool.chmod(0o755)
+        message = self.run_installer(success=False)
+        self.assertIn("needs macOS 14", message)
+        self.assertNotIn("Verifying the bundle's checksums", message)
+        self.assert_not_started()
 
     def test_stopped_docker_is_handled_without_real_services(self):
         self.settings["docker_down"] = True
@@ -344,6 +600,7 @@ class WindowsFixture(BundleFixture):
     def stubbed(self, installer, arguments):
         argument_file = self.root / "arguments.json"
         argument_file.write_text(json.dumps(arguments))
+        # installer: a name in the bundle, or the whole path of a script elsewhere
         return [WINDOWS_RUNTIME, "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
                 str(ROOT / "tests/install_stubs.ps1"), "-Installer", str(self.bundle / installer),
                 "-ArgumentsFile", str(argument_file)]
@@ -377,6 +634,35 @@ class WindowsInstallerTests(WindowsFixture, InstallerCases, unittest.TestCase):
         return self.stubbed("install.ps1", ["--prefix", str(self.prefix), "--port", self.port, "--name", "test-libre",
                                             "--web-port", self.web_port, *options])
 
+    start_script = "start-translation.ps1"
+
+    def start_command(self):
+        return self.stubbed(self.prefix / self.start_script, [])
+
+    def opened_pages(self):
+        return [call[0] for call in self.calls("Start-Process") if call[0].startswith("http://")]
+
+    def ollama_exe(self):
+        return Path(self.environment["LOCALAPPDATA"]) / "Programs/Ollama/ollama.exe"
+
+    def newer_ollama_in_bundle(self):
+        self.set_bundle(OLLAMA_VERSION="v0.0.2") # the stand-in program stays at 0.0.1
+
+    def existing_ollama(self):
+        self.ollama_exe().parent.mkdir(parents=True)
+        self.ollama_exe().write_bytes(self.ollama_bytes)
+
+    def assert_ollama_installs(self, count):
+        setups = [call for call in self.calls("Start-Process") if call[0].endswith("OllamaSetup.exe")]
+        self.assertEqual(len(setups), count)
+
+    def test_run_keeps_a_log_and_installs_the_start_launcher(self):
+        self.run_installer()
+        (log,) = self.prefix.glob("install-*.log")
+        self.assertIn("==> Done", log.read_text(encoding="utf-8-sig"))
+        self.assertEqual((self.prefix / "Start Translation.cmd").read_bytes(),
+                         (self.bundle / "Start Translation.cmd").read_bytes())
+
     def test_stopped_docker_is_reported(self):
         self.settings["docker_down"] = True
         self.assertIn("Docker isn't running", self.run_installer(success=False))
@@ -398,8 +684,11 @@ class WindowsInstallerTests(WindowsFixture, InstallerCases, unittest.TestCase):
         self.assertIn("Ollama installer did not finish", self.run_installer(success=False))
 
     def test_cmd_launchers_help_and_failure_status(self):
-        for launcher in ("install.cmd", "install-web.cmd"):
+        # Start Translation.cmd here is the copy on the drive, which says to install first.
+        for launcher in ("install.cmd", "install-web.cmd", "Start Translation.cmd"):
             for option, expected in (("--help", 0), ("--unknown", 1)):
+                if launcher.startswith("Start"):
+                    expected = 1
                 with self.subTest(launcher=launcher, option=option):
                     done = subprocess.run(f'"{self.bundle / launcher}" {option}', shell=True,
                                           env=self.environment, input="\n", capture_output=True, text=True, timeout=20)
