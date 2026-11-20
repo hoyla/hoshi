@@ -32,15 +32,10 @@ jobs:
             tests/requirements.txt
             evaluation/requirements.txt
       - run: python -m pip install -r tests/requirements.txt
-      - name: Native installer and output integrity regressions
-        run: python -m unittest discover -s tests -v
-      - name: Splitter parity
-        run: python web/tests/test_parity.py
-      - name: macOS Bash syntax
-        run: |
-          for script in build-*.sh bundle/*.sh calibration/*.sh; do
-            /bin/bash -n "$script"
-          done
+      # The same one command a developer runs: regression tests, splitter
+      # parity, shell and PowerShell syntax, ASCII-only Windows scripts.
+      - name: Everything a Mac can check
+        run: tests/check.sh
       - name: Web patch build and checksums
         run: |
           bash build-web-patch.sh --out "$RUNNER_TEMP/translation-web"

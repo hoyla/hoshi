@@ -651,10 +651,13 @@ The regression suite uses temporary bundles and stand-in engines, with no
 model downloads or real application installs:
 
 ```bash
-python3 -m unittest discover -s tests -v
+tests/check.sh
 ```
 
-It tests output integrity and the Mac, Windows and web installers: successful
+That one command also runs the splitter parity check and a syntax check of
+every shell and PowerShell script; [tests/README.md](tests/README.md) says
+where it gets PowerShell on a Mac that has none installed. The suite tests
+output integrity and the Mac, Windows and web installers: successful
 installs, reruns, checksum failures, container and port conflicts, image-load
 failures, file copies, smoke tests and launch failures. The installer scripts
 run unchanged; Docker, application setup and service transports are stand-ins.

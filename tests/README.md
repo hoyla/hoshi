@@ -1,12 +1,30 @@
 # Regression tests
 
-Run from the repository root:
+One command runs everything a Mac can check, and is what "the checks pass"
+means for a change:
 
 ```bash
 python3 -m pip install -r tests/requirements.txt
+tests/check.sh
+```
+
+It runs the regression tests, the splitter parity check, a syntax check of
+every shell script with macOS's own bash and of every PowerShell script, and
+the rule that the Windows scripts stay ASCII. PowerShell 7 comes from `pwsh`
+if that is installed and otherwise from the Docker image
+`mcr.microsoft.com/dotnet/sdk:8.0` (`PWSH_IMAGE` names another), which is how
+a Mac without PowerShell still checks the Windows scripts. The parts can be
+run alone:
+
+```bash
 python3 -m unittest discover -s tests -v
 python3 web/tests/test_parity.py
 ```
+
+`check.sh` does not run the Windows installer tests. They need Windows, and
+Windows PowerShell 5.1, which the target PCs have, exists nowhere else: the
+regression workflow on a pull request is their only run. A PowerShell change
+that parses here can still fail there.
 
 The pip dependencies support the web and optional evaluation tests. The offline
 installers keep using tools supplied by their target operating systems. Evaluation
