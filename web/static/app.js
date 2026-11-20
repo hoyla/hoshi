@@ -38,6 +38,27 @@ function languageName(code) {
   return found ? found.name : code;
 }
 
+// The TranslateGemma model someone chose is remembered in this browser, so a
+// computer that needs the smaller one doesn't have to be told every time.
+// Only a choice away from the bundle's default is kept: going back to the
+// default forgets it. A browser that refuses storage just doesn't remember.
+const MODEL_KEY = "hoshi.gemma-model";
+function savedModel() {
+  try { return localStorage.getItem(MODEL_KEY); } catch { return null; }
+}
+function saveModel(name) {
+  try {
+    if (name === config.gemma.default_model) localStorage.removeItem(MODEL_KEY);
+    else localStorage.setItem(MODEL_KEY, name);
+  } catch { /* not remembered; the list still works */ }
+}
+function isSmallModel(name) { return /:4b$/.test(name); }
+function modelLabel(name) {
+  if (name === config.gemma.default_model) return `${name} (standard)`;
+  if (isSmallModel(name)) return `${name} (smaller and faster)`;
+  return name;
+}
+
 // ------------------------------------------------------------------- start-up
 async function start() {
   config = await api("/api/config");
@@ -52,7 +73,8 @@ async function start() {
   );
   const types = [...new Set([...config.gemma.formats, ...config.libre.formats])].join(" ");
   $("formats").textContent = types;
-  $("model").replaceChildren(...config.gemma.models.map((m) => el("option", { value: m, selected: m === config.gemma.default_model }, m)));
+  const wanted = config.gemma.models.includes(savedModel()) ? savedModel() : config.gemma.default_model;
+  $("model").replaceChildren(...config.gemma.models.map((m) => el("option", { value: m, selected: m === wanted }, modelLabel(m))));
   show("model-field", false);
   $("folder").textContent = config.folder;
   $("about").textContent = config.tool;
@@ -215,8 +237,13 @@ function renderAdvice() {
     if (chosen === "auto" && doc.detected && doc.detected.confidence != null && doc.detected.confidence < 60) {
       lines.push(`The language was detected with low confidence. If this isn't ${languageName(doc.detected.code)}, choose the language yourself: TranslateGemma is told which language it is reading and translates badly when told wrong.`);
     }
-    if (/27b/.test($("model").value)) {
-      lines.push("The 27b model is slower and has not proved better. In testing it left out part of an Arabic text that 12b translated in full, and gave different results on a second run. Check anything it produces against 12b.");
+    const model = $("model").value;
+    const remembered = model !== config.gemma.default_model
+      ? ` This page will keep using it on this computer until you choose ${config.gemma.default_model} again.` : "";
+    if (model && !config.gemma.bundle_models.includes(model)) {
+      lines.push(`The model ${model} did not come with this installation and has not been tested with it. Check anything it produces against ${config.gemma.default_model}.${remembered}`);
+    } else if (isSmallModel(model) && model !== config.gemma.default_model) {
+      lines.push(`The 4b model is the smaller one, for computers where ${config.gemma.default_model} is too slow. Its translations have not yet been tested the way 12b's have, so check anything that matters against the original, and use 12b where the computer can run it.${remembered}`);
     }
     if (doc.gemma.ok && doc.gemma.pieces > 1) {
       lines.push(`This will go to the model in ${doc.gemma.pieces} pieces.`);
@@ -237,7 +264,7 @@ function renderAdvice() {
 
 for (const radio of document.querySelectorAll("input[name=engine]")) radio.onchange = renderLanguages;
 $("source").onchange = renderAdvice;
-$("model").onchange = renderAdvice;
+$("model").onchange = () => { saveModel($("model").value); renderAdvice(); };
 $("encoding").onchange = () => inspect({ upload: doc.upload, encoding: $("encoding").value });
 
 // ----------------------------------------------------------------- translating

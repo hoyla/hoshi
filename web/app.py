@@ -711,6 +711,8 @@ def config():
             "ok": bool(models),
             "error": error,
             "models": models,
+            # the ones this bundle carried, as against others found in Ollama
+            "bundle_models": [m for m in BUNDLE_MODELS if m in installed],
             "default_model": DEFAULT_MODEL if DEFAULT_MODEL in models else (models or [None])[0],
             "languages": [
                 {"code": code, "name": name, "common": code in common}

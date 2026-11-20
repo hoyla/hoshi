@@ -378,6 +378,10 @@ try {
       if ($test.Ok) {
         Note "test (en->fr): $($test.Text)"
         Note "that took $($test.Seconds) seconds, model loading included"
+        if ((((Get-Cfg 'GEMMA_MODELS') -split ',') -ccontains 'translategemma:4b') -and ($model -cne 'translategemma:4b')) {
+          Note 'if TranslateGemma proves too slow on this PC, the smaller translategemma:4b is installed too:'
+          Note 'choose it in the Model list on the translation page, or add --model translategemma:4b to the helper'
+        }
         $OLLAMA_OK = 'working'
       } else {
         $OLLAMA_OK = 'installed, but the test translation failed (see above)'

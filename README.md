@@ -20,9 +20,13 @@ More than 50 languages are supported.
 | Languages | 50 ([every Argos Translate model](https://www.argosopentech.com/argospm/index/)), 100 packages) | 55 core languages |
 | On a Mac | [Hoshi's page](#the-web-page) on `127.0.0.1:5080`, `translate.sh` | The same page, `translate.sh`, Ollama's chat window |
 | On Windows | The same page on `127.0.0.1:5080`, `translate.cmd` | The same page, `translate.cmd`, Ollama's chat window |
-| Size in bundle | 9 to 11 GB per target | about 8 GB, shared |
+| Size in bundle | 9 to 11 GB per target | about 11.5 GB (12B and the smaller 4B), shared |
 
 Both cover English, Russian, French, Chinese, Hebrew and Arabic.
+
+TranslateGemma is bundled in two sizes. 12B is the default everywhere. 4B is
+there for computers on which 12B is too slow, and has to be chosen: see
+[Things to know](#things-to-know) for what is and is not known about it.
 
 Hoshi translates nothing itself. It is built from LibreTranslate's open source
 software, and on Argos Translate, Ollama and Google's TranslateGemma. Hoshi is
@@ -47,21 +51,22 @@ installer needs no administrator rights.
 
 `--targets` picks what the bundle installs on. The default is both.
 
-| `--targets` | LibreTranslate images | Ollama | Bundle size (all languages, 12B) |
+| `--targets` | LibreTranslate images | Ollama | Bundle size (all languages, 12B and 4B) |
 |---|---|---|---|
-| `mac` | linux/arm64 | Mac app | 18 to 19.5 GB |
-| `windows` | linux/amd64 | Windows installer | about 19 to 21 GB |
-| `mac,windows` | both | both | about 29 to 33 GB |
+| `mac` | linux/arm64 | Mac app | 21.5 to 23 GB |
+| `windows` | linux/amd64 | Windows installer | about 22.5 to 24.5 GB |
+| `mac,windows` | both | both | about 32.5 to 36.5 GB |
 
 Each range runs from Docker's newer image store to its older one on the build
 Mac (see Things to know). The Mac figures include 0.6 GB for Docker Desktop's
-installer. Only the `mac` figures rest on a measured build; the others are
-worked out from it.
+installer. Only the `mac` figures rest on a measured build, and that build
+carried 12B alone: the 3.3 GB added here for 4B is the size Ollama lists for
+it. The other figures are worked out from those.
 
 Docker runs Linux for the machine's own processor, so a Mac needs the arm64
 image and an Intel or AMD PC the amd64 one. The language models are baked into
 each image, which is why a second target costs another 9 to 11 GB; the TranslateGemma
-model is the same files on both and is carried once. A Windows PC with an ARM
+models are the same files on both and are carried once. A Windows PC with an ARM
 processor uses the arm64 image, so it is covered only by the two-target bundle.
 
 Either installer checks and uses only its own platform's files, so the other
@@ -70,10 +75,10 @@ platform's big files can be left off a drive bound for one kind of machine
 
 ## Build (done on an internet connected Mac to create the installation material)
 
-Needs an Apple Silicon Mac with Docker running. For one target: about 30 GB
+Needs an Apple Silicon Mac with Docker running. For one target: about 35 GB
 free on the Mac, and 12 or 30 GB free inside Docker's own disk, depending on
 which image store Docker uses (see Things to know). For both targets: about
-45 GB on the Mac and twice the Docker figure. Docker Desktop keeps images in a
+50 GB on the Mac and twice the Docker figure. Docker Desktop keeps images in a
 virtual disk with its own size limit (Settings > Resources), so a Mac with
 plenty of space can still have a full Docker. The script checks this before
 the long download and stops with advice if it is short.
@@ -89,12 +94,13 @@ commit it writes into the manifest is what the bundle was made from.
 ```bash
 ./build-bundle.sh                    # Mac and Windows
 ./build-bundle.sh --targets mac      # Macs only
-./build-bundle.sh --targets mac --model translategemma:12b,translategemma:27b
+./build-bundle.sh --targets mac --model translategemma:12b   # without the smaller 4B
 ```
 
-For one target this downloads about 18 GB and writes
-`dist/translation-bundle-YYYYMMDD/` (18 to 19.5 GB for the Mac target). Allow
-about an hour at 5 MB/s. Both targets come to about 29 GB of downloads. It:
+For one target this downloads about 21 GB and writes
+`dist/translation-bundle-YYYYMMDD/` (21.5 to 23 GB for the Mac target). Allow
+about an hour and a quarter at 5 MB/s. Both targets come to about 32 GB of
+downloads. It:
 
 1. for the Mac target, downloads the pinned Docker Desktop for Apple Silicon
    and checks it against its pinned SHA-256, Gatekeeper, its code signature
@@ -106,9 +112,10 @@ about an hour at 5 MB/s. Both targets come to about 29 GB of downloads. It:
    against its pinned SHA-256; verifies the Mac app's code signature and
    Gatekeeper status (a Mac has no tool to check the Windows installer's
    publisher signature, so the installer reports it on the PC instead)
-4. pulls TranslateGemma into a model store inside the bundle, using the Mac
-   Ollama on a private port so your own Ollama setup is untouched, and runs a
-   test translation from that store
+4. pulls the TranslateGemma models (12B and 4B unless `--model` says
+   otherwise) into a model store inside the bundle, using the Mac Ollama on a
+   private port so your own Ollama setup is untouched, and runs a test
+   translation with each of them from that store
 5. copies in the scripts, the user guide and the test documents in
    [bundle/test-files/](bundle/test-files/), and
    [the web page](#the-web-page), after checking that the page
@@ -199,6 +206,13 @@ only the installer that starts it differs.
   touches the LibreTranslate container, so a computer whose bundle had no
   page (every Windows bundle built before this) and which got one as an
   update has both until a bundle is installed on it again.
+- **The model choice is the page's own.** With more than one TranslateGemma
+  model installed the page shows a Model list, the bundle's default (12B)
+  first. A choice away from the default is kept in that browser's
+  `localStorage` and used until the default is chosen again, and the page
+  says so each time. The helpers take no notice of it: they use 12B unless
+  `--model` is given on that run. The provenance records the exact model
+  either way.
 - **The page's directions follow the computer.** The web installer passes
   `HOST_OS` (`mac` or `windows`) to the container, and the page shows Finder
   or File Explorer, Applications or the Start menu, to match.
@@ -267,8 +281,8 @@ take the same options and behave the same way:
   Normal failures clean up incomplete files. An abrupt shutdown may leave a
   lock or incomplete result, which later runs leave alone and do not reuse.
 - TranslateGemma runs at temperature 0 so that the same input gives the same
-  output. The 12b model did on repeated runs. The 27b model did not: two runs
-  on the Arabic test file differed in three phrases (see Status).
+  output. The 12b model did on repeated runs. The 4b model has not been
+  checked for this.
 - Long texts are split at paragraph, line or sentence boundaries. Anything that
   cannot be split safely is refused rather than silently truncated. The two
   helpers cut a text into the same pieces, so the same file gets the same
@@ -397,7 +411,7 @@ Two weaknesses turned up in use:
 - *When the translation has a different number of lines and of paragraphs
   from its source, only the two whole texts are compared*, and the sidecar
   says `compared the text as a whole`. That catches a large loss and little
-  else. TranslateGemma 27B's condensed Arabic (see Status) is the case in
+  else. A test translation that condensed its Arabic source is the case in
   point: one line of eighteen merged away, so the texts no longer lined up;
   the whole came out 13% short of expectation, well inside tolerance, and
   this check reported nothing. The per-piece line count did warn.
@@ -520,19 +534,24 @@ changed.
   models in the official Argos index, and those are version 1.0 for Arabic
   and 1.5 for Hebrew, against 1.9 for Russian, Spanish and French. Models
   published elsewhere were not looked at.
+- **Two TranslateGemma models.** A bundle carries `translategemma:12b` and
+  `translategemma:4b` (3.3 GB) unless the build's `--model` says otherwise.
+  The first in that list is the default for the helpers and the page, so 12B
+  is used unless someone chooses 4B: with `--model translategemma:4b` on a
+  helper run, which is not remembered, or in the page's Model list, which is
+  (see The web page). 4B is there for computers on which 12B is too slow.
+  Everything in this README about TranslateGemma's quality, the calibration
+  of the dropped-text check included, was measured with 12B; 4B has not been
+  compared with it (see Status).
 - **Memory.** TranslateGemma 12B used about 10 GB while loaded, so it wants a
   Mac with 16 GB of RAM or more. LibreTranslate's container used about 1.6 GB.
-  `--model translategemma:4b` (3.3 GB) is the fallback for 8 GB machines and
-  `translategemma:27b` (17 GB) the larger one for 32 GB and more, which in
-  the one comparison made was no better and on one file worse (see Status). `--model` takes
-  a comma-separated list, so a bundle can carry more than one and the helper's
-  `--model` picks between them on the target.
+  4B is the fallback for 8 GB machines; nobody has run it on one.
 - **Windows hardware.** There, what matters is the graphics card: 12B is quick
   with an NVIDIA or AMD card that has about 12 GB of its own memory and a
   driver already installed (it can't be fetched on the target). Without one,
   Ollama runs the model on the CPU, which works and is slow; `install.cmd`
-  times its test translation so the difference shows. For a fleet of PCs with
-  no such card, bundle `translategemma:4b` as well or instead.
+  times its test translation so the difference shows, and then points to 4B.
+  How fast 4B is on such a PC has not been measured.
 - **Windows containers.** Docker Desktop on Windows must be in its default
   Linux-containers mode. `install.cmd` says so if it isn't.
 - **macOS.** Ollama needs macOS 14 or newer on the target.
@@ -552,7 +571,7 @@ changed.
   |---|---|---|
   | Free in Docker's disk to build, per image | 12 GB | 30 GB |
   | Image file in the bundle, per image | 10.9 GB | 9.1 GB |
-  | Whole bundle, Mac target | about 19 GB | about 17.5 GB |
+  | Whole bundle, Mac target, 12B and 4B | about 22.5 GB | about 21 GB |
 
   The script's disk check uses the figure for the store it finds. The 30 GB
   was not measured at full size: a 300 MB test layer cost three times its size,
@@ -644,7 +663,8 @@ emulation.
   full-size bundle has been built from this repository
 - *Full size, Mac target:* twice. First with every language and
   `translategemma:12b`, on macOS 27, from the build script before it had a
-  Windows side. Then with every language, 12B, 27B and Docker Desktop, from
+  Windows side. Then with every language, 12B, a second TranslateGemma model and Docker
+  Desktop, from
   commit `c91c2cd` of the private repository. The offline test translations
   the build makes passed both times
 - *Smoke build, both targets:* including the offline boot and test
@@ -758,15 +778,6 @@ words each:
   English and in English into French. All 38 numbers in the Hebrew survived.
   30 to 45 seconds a file, and a second run gave the same output. The Spanish
   one came back with its title in markdown bold
-- **TranslateGemma 27B on the same text:** 50 seconds to two minutes a file.
-  Russian, Spanish and Hebrew into English and English into French came out
-  the same length as 12B's, paragraph for paragraph; in the Hebrew it joined
-  two lines into one sentence with nothing lost. In the first half of the
-  Arabic it condensed instead of translating: four paragraphs came out 29%
-  shorter than 12B's, two of them merged, "about 200 independent countries"
-  gone, and two runs differed from each other in three phrases. The second
-  half matched 12B's length. The helper's check on each piece warns on both
-  the Arabic and the Hebrew
 - **LibreTranslate on the .docx files:** Russian, Spanish and English into
   French read well. Hebrew is rough, turned 0.5 km/s into 0.2 and garbled a
   web address. Arabic dropped passages (six of its numbers are missing),
@@ -804,9 +815,13 @@ The Windows items can't be done from a Mac.
 - the web page in Safari or on Windows, and in any browser since the bundle
   began to carry it: those tests drove its API. `install.sh` opening the page
   at the end of an install
-- `translategemma:27b` on a 32 GB Mac, and any comparison of it with 12B
-  beyond the five test files. The build's self-test runs only the first
-  model in the list
+- `translategemma:4b` at all, beyond the size Ollama lists for it: how its
+  translations compare with 12B's, whether the dropped-text check's
+  tolerances hold for its output, how long it takes on a Windows PC without
+  a suitable graphics card or on an 8 GB Mac, and a full build that carries
+  it. The build's self-test of every model in the list, the page's
+  remembered model choice in a browser, and `install.cmd`'s pointer to 4B
+  have not been run either
 - copying the text out of a PDF and translating that, which the user guide
   suggests when there is no Word version
 - bilingual expert evaluation of either engine on real documents from the
