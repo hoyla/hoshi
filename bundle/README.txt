@@ -10,7 +10,9 @@ Everything they need, language models included, is in this folder.
 
   TranslateGemma   A Google translation model run by the Ollama app.
                    Noticeably better translations. Gives back plain text.
-                   Slower.
+                   Slower. It comes in two sizes: the standard one (12b)
+                   and a smaller one (4b) for computers where the standard
+                   one is too slow.
 
 You use both from one web page, http://127.0.0.1:5080, which checks each
 translation for dropped text and keeps a record of how it was made. There is
@@ -40,7 +42,9 @@ WHAT THE COMPUTER NEEDS
 -----------------------
 A Mac
     An Apple Silicon Mac (M1 or later) with macOS 14 or newer and 16 GB of
-    memory or more. It does not need Docker Desktop already: if it has none,
+    memory or more. (With 8 GB, only the smaller TranslateGemma model is
+    likely to run, and nobody has tried it.) It does not need Docker
+    Desktop already: if it has none,
     the installer puts on the copy in this folder (docker/Docker.dmg), which
     takes the Mac's administrator password.
 
@@ -48,16 +52,15 @@ A Windows PC
     Windows 10 (version 22H2) or Windows 11, with Docker Desktop installed.
     No administrator rights are needed.
 
-    LibreTranslate runs well on any such PC. TranslateGemma is quick only
-    on a PC whose graphics card has about 12 GB of its own memory (NVIDIA
-    or AMD). Without one it still works, but slowly: expect minutes for
-    each page. The installer times a test translation so you can tell
-    which kind of PC you have.
+    LibreTranslate runs well on any such PC. The standard TranslateGemma
+    model (12b) is quick only on a PC whose graphics card has about 12 GB
+    of its own memory (NVIDIA or AMD). Without one it still works, but
+    slowly: expect minutes for each page. The installer times a test
+    translation so you can tell which kind of PC you have. If it is the
+    slow kind, use the smaller model (4b): "Using it" says how.
 
 Either one
-    About 30 GB of free disk space. If MANIFEST.txt lists more than one
-    TranslateGemma model, add the size of each extra one (the 27b model is
-    17 GB).
+    About 35 GB of free disk space.
 
 Docker Desktop is free for personal use and for small organisations. Larger
 ones need a paid Docker subscription for every machine it is on, so check
@@ -74,7 +77,7 @@ COPYING THE BUNDLE TO THE COMPUTER
      computer may not open on the other.)
 
   2. Copy this whole folder to the drive. Keep the file and folder names as
-     they are. The bundle is somewhere between 18 and 50 GB depending on
+     they are. The bundle is somewhere between 20 and 40 GB depending on
      what was built into it, so allow half an hour or more, and eject the
      drive properly before unplugging it.
 
@@ -187,6 +190,15 @@ On the translation page
     its name and its SHA-256. The page makes the checks described under
     "How far to trust it" and shows what they find.
 
+    TranslateGemma comes in two sizes. The page uses the standard one,
+    translategemma:12b, unless you choose otherwise. Where that is too
+    slow (most often a Windows PC without a suitable graphics card),
+    choose translategemma:4b in the Model list, which appears once
+    TranslateGemma is selected. The page remembers that choice, in the
+    browser you made it in, until you choose 12b again, and says so while
+    4b is selected. Every translation's record names the model that made
+    it. Before relying on 4b, read what "How far to trust it" says of it.
+
     The page answers only on the computer it is installed on. Other
     computers can't reach it.
 
@@ -222,10 +234,11 @@ From the command line (Mac or Windows)
     Text that is not UTF-8 (common for older Russian, Hebrew, Arabic and
     Chinese files) needs --encoding, for example --encoding CP1251.
 
-    If MANIFEST.txt lists more than one TranslateGemma model, the helper
-    uses the first. --model picks another, for example
-    --model translategemma:27b. The bigger model is slower and has not
-    proved better: see "How far to trust it" below.
+    The helper uses the standard TranslateGemma model, translategemma:12b.
+    For the smaller, faster one, add --model translategemma:4b to the
+    command. The helper does not remember this from one run to the next,
+    and takes no notice of the model chosen on the translation page. See
+    "How far to trust it" below before relying on 4b.
 
 What you get
     statement.txt                             your original, never changed
@@ -326,8 +339,8 @@ that table are the engines' limits, not a fault on your computer. The next
 section says what to do about them.
 
 On the fast Mac used for the test, LibreTranslate took 3 to 15 seconds for
-each file, TranslateGemma 12b took 30 to 45 seconds and TranslateGemma 27b
-took one to two minutes. A slower computer takes longer, and a Windows PC
+each file and TranslateGemma 12b took 30 to 45 seconds. The smaller 4b
+model was not timed. A slower computer takes longer, and a Windows PC
 without a suitable graphics card takes much longer for TranslateGemma.
 
 You can delete the translations, or the whole test-files folder, whenever
@@ -440,15 +453,14 @@ TranslateGemma handles long texts in pieces of a few paragraphs, so it does
 not see the whole document at once. Terms may be rendered inconsistently
 between pieces.
 
-The bigger TranslateGemma model (27b), where the bundle has it, is not a
-safe step up. On the Arabic test file it shortened the first half instead
-of translating it. That half came out nearly a third shorter than the 12b
-model's, without (among other things) the number of countries in the world,
-and two runs on the same file gave slightly different wording. The 12b
-model translated that file in full. On the other four test files the two
-models produced about the same amount of text. That is one bad file out of
-five, on one computer. Until someone has compared them properly, use 12b,
-and check anything 27b produces against it.
+The smaller TranslateGemma model (4b) is there for computers on which the
+standard one (12b) is too slow. Everything this guide says about how good
+TranslateGemma is, the table of test results included, was found with 12b.
+Nobody has yet compared 4b's translations with 12b's, and the checks
+described next have not been tried on 4b's output, so they may warn more
+or less often than they should. Treat a 4b translation as a first reading.
+Where it matters, translate the document again with 12b on a computer that
+can run it. The .provenance.json file says which model made a translation.
 
 If the helper prints a warning, or the translation page shows one, read it.
 Both make the same two checks, and record what they find in the
@@ -594,8 +606,11 @@ The window says running scripts is disabled, or closes at once
 
 TranslateGemma takes minutes for a short text
     The PC has no graphics card the model can use, so it is running on the
-    processor alone. It will finish; give long documents an hour or more,
-    or use --engine libre for a quick first reading.
+    processor alone. It will finish; give long documents an hour or more.
+    Or use the smaller model: choose translategemma:4b in the Model list
+    on the translation page, or add --model translategemma:4b to the
+    helper's command. For a quick first reading there is also
+    LibreTranslate (--engine libre).
 
 Russian, Arabic, Hebrew or Chinese shows as boxes or question marks in the
 Command Prompt window

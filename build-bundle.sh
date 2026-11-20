@@ -36,7 +36,9 @@ DOCKER_DESKTOP_BUILD="245822"
 DOCKER_DMG_SHA256="0ede7f9917b55c396a17b03c069cadf457a7d21904bc264c6d398fe132da7fb9"
 
 TARGETS="mac,windows"       # which machines the bundle installs on
-MODELS="translategemma:12b" # comma-separated; the first is the helper's default
+# Comma-separated; the first is the default for the helper and the page. 4b is
+# the smaller one, for computers where 12b is slow.
+MODELS="translategemma:12b,translategemma:4b"
 LANGS=""                    # LibreTranslate language codes; empty = all
 OUT=""
 WITH_DOCKER_DESKTOP=1       # carry Docker Desktop's installer for Macs that lack it
@@ -53,7 +55,7 @@ Usage: ./build-bundle.sh [options]
 
   --targets LIST       Machines the bundle installs on: mac, windows, or both
                        (default: $TARGETS). Each one adds a LibreTranslate
-                       image of 9 to 11 GB; the TranslateGemma model is shared.
+                       image of 9 to 11 GB; the TranslateGemma models are shared.
   --langs CODES        LibreTranslate languages to include, e.g. en,ru,fr,zh,he,ar
                        (default: all, about 8.4 GB per image)
   --model NAMES        Ollama model(s), comma-separated (default: $MODELS)
@@ -491,16 +493,26 @@ while IFS="$(printf '\t')" read -r name _; do
 done < "$WORK/ollama-models.txt"
 
 DEFAULT_MODEL="${MODELS%%,*}"
-say "Checking $DEFAULT_MODEL runs from the bundle's own model store"
-cat > "$WORK/req.json" <<EOF
-{"model": "$DEFAULT_MODEL", "stream": false, "options": {"temperature": 0},
+# Every model, not only the default: a model nobody ran here would reach the
+# target unproved.
+: > "$WORK/gemma-tests.txt"
+OLD_IFS="$IFS"; IFS=','
+for model in $MODELS; do
+  IFS="$OLD_IFS"
+  say "Checking $model runs from the bundle's own model store"
+  cat > "$WORK/req.json" <<EOF
+{"model": "$model", "stream": false, "options": {"temperature": 0},
  "prompt": "You are a professional English (en) to French (fr) translator. Your goal is to accurately convey the meaning and nuances of the original English text while adhering to French grammar, vocabulary, and cultural sensitivities.\nProduce only the French translation, without any additional explanations or commentary. Please translate the following English text into French:\n\n\nThe documents arrived this morning."}
 EOF
-curl -fsS --max-time 900 -H 'Content-Type: application/json' \
-  --data-binary "@$WORK/req.json" "$OLLAMA_API/api/generate" > "$WORK/resp.json" \
-  || die "$DEFAULT_MODEL failed to generate; see $WORK/ollama-serve.log"
-GEMMA_TEST_OUT="$(plutil -extract response raw -o - "$WORK/resp.json" | tr '\n' ' ' | sed 's/ *$//')"
-echo "    en->fr: $GEMMA_TEST_OUT"
+  curl -fsS --max-time 900 -H 'Content-Type: application/json' \
+    --data-binary "@$WORK/req.json" "$OLLAMA_API/api/generate" > "$WORK/resp.json" \
+    || die "$model failed to generate; see $WORK/ollama-serve.log"
+  GEMMA_TEST_OUT="$(plutil -extract response raw -o - "$WORK/resp.json" | tr '\n' ' ' | sed 's/ *$//')"
+  [ -n "$GEMMA_TEST_OUT" ] || die "$model gave an empty test translation; see $WORK/ollama-serve.log"
+  echo "    en->fr: $GEMMA_TEST_OUT"
+  printf '    %s: The documents arrived this morning. => %s\n' "$model" "$GEMMA_TEST_OUT" >> "$WORK/gemma-tests.txt"
+done
+IFS="$OLD_IFS"
 
 kill "$SERVE_PID" 2>/dev/null || true
 wait "$SERVE_PID" 2>/dev/null || true
@@ -597,8 +609,8 @@ assemble_web "$SRC" "$OUT" "built $BUILT_UTC from commit ${SOURCE_COMMIT:-unknow
   fi
   echo "  Models (name, digest):"
   sed 's/^/    /' "$WORK/ollama-models.txt"
-  echo "  Self-test ($DEFAULT_MODEL, en->fr, temperature 0, on the build Mac):"
-  echo "    The documents arrived this morning. => $GEMMA_TEST_OUT"
+  echo "  Self-test of each model (en->fr, temperature 0, on the build Mac):"
+  cat "$WORK/gemma-tests.txt"
   FIRST_ARCH="${ARCHES%% *}"
   for ARCH in $ARCHES; do
     if [ "$ARCH" = "$FIRST_ARCH" ]; then
