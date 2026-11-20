@@ -90,11 +90,15 @@ function Get-FileBytes([string]$Path) {
 }
 
 # Free bytes on the drive a folder is on, or -1 where that can't be told (a
-# network share).
+# network share). Windows is asked first; .NET's own figure is the fallback.
 function Get-FreeBytes([string]$Path) {
+  $root = [System.IO.Path]::GetPathRoot($Path)
   try {
-    $drive = Get-PSDrive -Name ([System.IO.Path]::GetPathRoot($Path).Substring(0, 1))
-    return [long]$drive.Free
+    $disk = Get-CimInstance -ClassName Win32_LogicalDisk -Filter "DeviceID='$($root.Substring(0, 2))'"
+    if ($disk -and $disk.FreeSpace) { return [long]$disk.FreeSpace }
+  } catch { }
+  try {
+    return [long](New-Object System.IO.DriveInfo($root)).AvailableFreeSpace
   } catch {
     return [long]-1
   }

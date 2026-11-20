@@ -114,15 +114,14 @@ function Start-Process {
 
 function Start-Sleep { param($Seconds) }
 
-# Free disk space and memory are the test's to set; left alone, the real ones.
-function Get-PSDrive {
-  param([string]$Name)
-  if (Test-Setting 'disk_free_kb') { return New-Object PSObject -Property @{ Free = [long](Test-Setting 'disk_free_kb') * 1024 } }
-  Microsoft.PowerShell.Management\Get-PSDrive -Name $Name
-}
-
+# Free disk space and memory are the test's to set. Left alone, memory is
+# 16 GB and the installer falls back to asking .NET for the real free space.
 function Get-CimInstance {
-  param([string]$ClassName)
+  param([string]$ClassName, [string]$Filter)
+  if ($ClassName -eq 'Win32_LogicalDisk') {
+    if (Test-Setting 'disk_free_kb') { return New-Object PSObject -Property @{ FreeSpace = [long](Test-Setting 'disk_free_kb') * 1024 } }
+    return $null
+  }
   $gigabytes = 16
   if (Test-Setting 'memory_gb') { $gigabytes = [long](Test-Setting 'memory_gb') }
   return New-Object PSObject -Property @{ TotalPhysicalMemory = $gigabytes * 1GB }

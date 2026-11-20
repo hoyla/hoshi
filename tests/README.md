@@ -49,7 +49,7 @@ Docker startup is also tested by extracting the installer's actual startup
 function and supplying a fixture application path, so those cases do not depend
 on Docker Desktop being present on the host.
 On Windows, `install_stubs.ps1` supplies Docker, robocopy, process-launch,
-drive and memory functions in the installer's parent scope. A process-local .NET request factory
+disk and memory queries in the installer's parent scope. A process-local .NET request factory
 answers service health checks without contacting any network service. A tiny
 .NET console executable stands in for the installed Ollama CLI, so reruns still
 execute a real program when checking its version. All writes go to fixture
