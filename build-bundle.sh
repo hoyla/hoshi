@@ -81,6 +81,21 @@ EOF
 
 say() { printf '\n==> %s\n' "$*"; }
 die() { printf 'error: %s\n' "$*" >&2; exit 1; }
+# Gives a file its own Finder icon, kept in the file's metadata: its bytes,
+# and so its checksum, are unchanged. A copy to an exFAT drive keeps the icon
+# in the hidden ._ file macOS writes beside it there; a copy that drops those
+# (from Windows, say) shows the ordinary icon instead, and nothing else changes.
+set_finder_icon() { # $1 = .icns file, $2 = the file to give it to
+  osascript -l JavaScript - "$1" "$2" >/dev/null <<'JS'
+  ObjC.import('AppKit');
+  function run(argv) {
+    var image = $.NSImage.alloc.initWithContentsOfFile(argv[0]);
+    if (image.isNil() || !$.NSWorkspace.sharedWorkspace.setIconForFileOptions(image, argv[1], 0)) {
+      throw new Error('could not set the icon');
+    }
+  }
+JS
+}
 
 OLLAMA_VERSION_OVERRIDDEN=0
 OLLAMA_SHA_GIVEN=0
@@ -540,6 +555,9 @@ if [ "$WANT_MAC" = 1 ]; then
   cp "$SRC/bundle/install.sh" "$SRC/bundle/translate.sh" "$SRC/bundle/Install.command" \
     "$SRC/bundle/Start Translation.command" "$OUT/"
   chmod +x "$OUT/install.sh" "$OUT/translate.sh" "$OUT/Install.command" "$OUT/Start Translation.command"
+  # So the one file to double-click stands out in a busy folder.
+  set_finder_icon "$SRC/bundle/icons/hoshi.icns" "$OUT/Install.command" \
+    || printf '    note: Install.command keeps its ordinary icon: macOS would not set the Hoshi one\n'
   # install.sh makes the Hoshi Offline Translation app from these, on the Mac
   mkdir -p "$OUT/icons"
   cp "$SRC/bundle/Hoshi Offline Translation.applescript" "$OUT/"

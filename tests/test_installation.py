@@ -177,6 +177,28 @@ class BundleBuildTests(unittest.TestCase):
         for name in ("Install.command", "Start Translation.command"):
             self.assertTrue(os.access(ROOT / "bundle" / name, os.X_OK), name)
 
+    def test_install_command_is_given_the_hoshi_icon_without_changing_it(self):
+        # The build's own function, run on a copy: a full build needs Docker.
+        build = (ROOT / "build-bundle.sh").read_text()
+        function = re.search(r"^set_finder_icon\(\) \{.*?^\}", build, re.M | re.S).group()
+        self.assertIn('set_finder_icon "$SRC/bundle/icons/hoshi.icns" "$OUT/Install.command"', build)
+        with tempfile.TemporaryDirectory() as folder:
+            target = Path(folder) / "Install.command"
+            shutil.copy(ROOT / "bundle/Install.command", target)
+            before = target.read_bytes()
+            done = subprocess.run(["/bin/bash", "-c", function + '\nset_finder_icon "$1" "$2"', "-",
+                                   str(ROOT / "bundle/icons/hoshi.icns"), str(target)],
+                                  capture_output=True, text=True, timeout=30)
+            self.assertEqual(done.returncode, 0, done.stderr)
+            self.assertEqual(target.read_bytes(), before) # so SHA256SUMS still matches
+            names = subprocess.run(["xattr", str(target)], capture_output=True, text=True).stdout.split()
+            self.assertIn("com.apple.ResourceFork", names) # where a file's own icon lives
+            # and a missing icon file is a failure the build can note, not a crash
+            done = subprocess.run(["/bin/bash", "-c", function + '\nset_finder_icon "$1" "$2"', "-",
+                                   str(Path(folder) / "missing.icns"), str(target)],
+                                  capture_output=True, text=True, timeout=30)
+            self.assertNotEqual(done.returncode, 0)
+
     def test_support_line_must_be_one_line(self):
         done = subprocess.run(["/bin/bash", str(ROOT / "build-bundle.sh"), "--support", "Sam\n020 7946 0000"],
                               capture_output=True, text=True, timeout=20)
