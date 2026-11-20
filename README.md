@@ -135,7 +135,8 @@ of models per image instead of 8.4 GB.
 
 Copy the whole bundle folder on a drive formatted as **exFAT**, which both
 macOS and Windows read and write. FAT32 cannot hold the files over 4 GB; APFS
-is fine if the drive is only going to Macs.
+is fine if the drive is only going to Macs. The transfer drive will need as  
+much as 40 GB of free space, so you probably need a 64 GB (or more) USB stick.
 
 ## Install and use (airgapped machine)
 
