@@ -16,8 +16,8 @@ ratings. They never download a model or run real inference in CI.
 
 | Tests | Where they run | What they exercise |
 |---|---|---|
-| Mac installer | macOS, native Bash | Tiny bundle installation, reruns, checksums, loopback binding, recorded image ID, retained translations, logs, conflicts, Docker startup, copying and engine failures. |
-| Windows installer | Windows PowerShell 5.1 or PowerShell 7 on Windows | Tiny bundle installation, reruns, checksums, loopback binding, recorded image ID, retained translations, conflicts, Linux-container checks, ARM image selection, model copying and setup failures. Also the real `install.cmd` launcher for help and error exit codes. |
+| Mac installer | macOS, native Bash | Tiny bundle installation, reruns, checksums, loopback binding, recorded image ID, retained translations, logs, conflicts, Docker startup, copying and engine failures. Checks made before the checksum pass (macOS version, ports, disk space, memory); installing over an earlier install (older or newer bundle, the earlier image removed, kept while in use or after a failed run, leftover models listed and left, Ollama replaced only where an earlier install put it there); the closing lines of a failed run and the support line; `Install.command`; `Start Translation.command` with each service down. |
+| Windows installer | Windows PowerShell 5.1 or PowerShell 7 on Windows | Tiny bundle installation, reruns, checksums, loopback binding, recorded image ID, retained translations, conflicts, Linux-container checks, ARM image selection, model copying and setup failures, and the same pre-checksum, reinstall, failure and `start-translation.ps1` cases as the Mac. Also the real `install.cmd` and `Start Translation.cmd` launchers for exit codes. |
 | Web installers | macOS, native Bash; Windows PowerShell 5.1 or PowerShell 7 on Windows | The same cases against `install-web.sh` and `install-web.ps1`: checksums, loopback binding, upload tmpfs, the folder and system the page is told, prerequisites, moved or missing image tags, image/service identity conflicts, page startup and retained translations during updates. The full installers' cases cover the page being started in place of LibreTranslate's own, and `--no-web`. |
 | Output integrity | Mac Bash, PowerShell, Python web code | Both engines, result reuse, changed settings/encoding, output and extracted-text hashes, concurrent writers, source snapshots and failed publication. |
 | Splitter parity | macOS | The Python splitter, counters and trimming against the helper's own awk programs. |
@@ -40,13 +40,16 @@ these cases test the installer copying and calling them; `test_output_integrity`
 runs the production translation helpers separately.
 
 On macOS, the command stand-ins in `install_stubs.py` replace Docker, curl,
-application opening, application copying, hardware identification and long waits.
+application opening, application copying, hardware identification, free disk
+space, quitting Ollama and long waits. A started container holds its port in the
+stand-ins, as a real one does, so every re-run meets its own earlier container
+on the port.
 The full-installer harness refuses any sudo or disk-image mounting command.
 Docker startup is also tested by extracting the installer's actual startup
 function and supplying a fixture application path, so those cases do not depend
 on Docker Desktop being present on the host.
-On Windows, `install_stubs.ps1` supplies Docker, robocopy and process-launch
-functions in the installer's parent scope. A process-local .NET request factory
+On Windows, `install_stubs.ps1` supplies Docker, robocopy, process-launch,
+drive and memory functions in the installer's parent scope. A process-local .NET request factory
 answers service health checks without contacting any network service. A tiny
 .NET console executable stands in for the installed Ollama CLI, so reruns still
 execute a real program when checking its version. All writes go to fixture
@@ -54,7 +57,9 @@ destinations; the user's applications and model store are not used.
 
 These are regression tests of installer logic and native shell compatibility.
 They do not establish that Docker Desktop installs, starts or accepts its
-agreement on a clean machine; that the genuine Ollama installer runs silently;
+agreement on a clean machine; that `Install.command` or the "Start Translation"
+files open from Finder or File Explorer; that Docker really frees an earlier
+image's space; that a running Ollama quits and is replaced; that the genuine Ollama installer runs silently;
 that a GPU is picked up; or that multi-gigabyte payloads load on the target's
 filesystem and Docker image store. A full smoke bundle still needs a real
 Windows machine and a clean airgapped Mac before those claims can be made.

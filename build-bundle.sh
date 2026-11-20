@@ -43,6 +43,7 @@ LANGS=""                    # LibreTranslate language codes; empty = all
 OUT=""
 WITH_DOCKER_DESKTOP=1       # carry Docker Desktop's installer for Macs that lack it
 ALLOW_DIRTY=0               # build from files that differ from the last commit
+SUPPORT=""                  # who to ask for help; the installers print it when they fail
 PULL_PORT=11535             # private port, so a running Ollama on 11434 is left alone
 DOCKER_NEED_GB=12           # free space inside Docker's own disk to bake every language,
                             # per image (measured: an image adds 9.6 GiB and there is no higher peak)
@@ -70,6 +71,10 @@ Usage: ./build-bundle.sh [options]
                        Every target Mac must then have Docker already.
   --allow-dirty        Build even if files here differ from the last git commit.
                        The manifest then says so.
+  --support "TEXT"     Who the people installing should ask for help, on one
+                       line, e.g. "Sam Lee, sam@example.org, 020 7946 0000".
+                       The installers print it when an install fails.
+                       Default: no such line.
   -h, --help           Show this help
 EOF
 }
@@ -92,10 +97,13 @@ while [ $# -gt 0 ]; do
     --ollama-setup-sha256) OLLAMA_SETUP_SHA256="${2:?}"; OLLAMA_SETUP_SHA_GIVEN=1; shift 2 ;;
     --no-docker-desktop) WITH_DOCKER_DESKTOP=0; shift ;;
     --allow-dirty) ALLOW_DIRTY=1; shift ;;
+    --support) SUPPORT="${2:?}"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) usage >&2; die "unknown option: $1" ;;
   esac
 done
+
+case "$SUPPORT" in *$'\n'*|*$'\r'*) die "--support takes one line of text" ;; esac
 
 WANT_MAC=0
 WANT_WINDOWS=0
@@ -192,7 +200,9 @@ printf 'BUNDLE_BUILT_UTC=%s\n' "$BUILT_UTC" > "$OUT/bundle.env"
 # guide, manifest and checksums until the last step replaces them, describing
 # files this build has since changed. Take them out now and say why.
 rm -f "$OUT/MANIFEST.txt" "$OUT/SHA256SUMS" "$OUT/README.txt" "$OUT/languages.tsv" \
-  "$OUT/LICENSE.txt" "$OUT/NOTICE.txt" "$OUT"/install.* "$OUT"/install-web.* "$OUT"/translate.*
+  "$OUT/LICENSE.txt" "$OUT/NOTICE.txt" "$OUT"/install.* "$OUT"/install-web.* "$OUT"/translate.* \
+  "$OUT/Install.command" "$OUT/Start Translation.command" "$OUT/Start Translation.cmd" \
+  "$OUT/start-translation.ps1"
 rm -rf "$OUT/test-files" "$OUT/licences" "$OUT/web"
 mkdir "$OUT/licences"
 UNFINISHED="$OUT/BUILD-NOT-FINISHED.txt"
@@ -527,14 +537,15 @@ cp "$SRC/NOTICE" "$OUT/NOTICE.txt"
 cp "$WORK/argos-readmes-${ARCHES%% *}.txt" "$OUT/licences/argos-language-models.txt"
 INSTALLS_ON=""
 if [ "$WANT_MAC" = 1 ]; then
-  cp "$SRC/bundle/install.sh" "$SRC/bundle/translate.sh" "$OUT/"
-  chmod +x "$OUT/install.sh" "$OUT/translate.sh"
-  INSTALLS_ON="Apple Silicon Macs (install.sh)"
+  cp "$SRC/bundle/install.sh" "$SRC/bundle/translate.sh" "$SRC/bundle/Install.command" \
+    "$SRC/bundle/Start Translation.command" "$OUT/"
+  chmod +x "$OUT/install.sh" "$OUT/translate.sh" "$OUT/Install.command" "$OUT/Start Translation.command"
+  INSTALLS_ON="Apple Silicon Macs (double-click Install.command, which runs install.sh)"
 fi
 if [ "$WANT_WINDOWS" = 1 ]; then
-  cp "$SRC/bundle/install.ps1" "$SRC/bundle/translate.ps1" "$OUT/"
+  cp "$SRC/bundle/install.ps1" "$SRC/bundle/translate.ps1" "$SRC/bundle/start-translation.ps1" "$OUT/"
   # Command Prompt misreads batch files whose lines end the Unix way.
-  for f in install.cmd translate.cmd; do
+  for f in install.cmd translate.cmd "Start Translation.cmd"; do
     perl -pe 's/\r?\n\z/\r\n/' "$SRC/bundle/$f" > "$OUT/$f"
   done
   INSTALLS_ON="${INSTALLS_ON:+$INSTALLS_ON; }Windows PCs (install.cmd)"
@@ -558,6 +569,7 @@ assemble_web "$SRC" "$OUT" "built $BUILT_UTC from commit ${SOURCE_COMMIT:-unknow
   [ "$WANT_WINDOWS" = 0 ] || echo "OLLAMA_SETUP=ollama/OllamaSetup.exe"
   echo "GEMMA_MODELS=$MODELS"
   echo "DEFAULT_MODEL=$DEFAULT_MODEL"
+  [ -z "$SUPPORT" ] || echo "SUPPORT=$SUPPORT"
 } > "$OUT/bundle.env"
 
 {
@@ -566,6 +578,7 @@ assemble_web "$SRC" "$OUT" "built $BUILT_UTC from commit ${SOURCE_COMMIT:-unknow
   echo "Built (UTC):        $BUILT_UTC"
   echo "Built on:           macOS $(sw_vers -productVersion) $(uname -m)"
   echo "Installs on:        $INSTALLS_ON"
+  echo "Help with installs: ${SUPPORT:-no one named (build-bundle.sh --support)}"
   if [ -n "$SOURCE_COMMIT" ]; then
     echo "Built from:         commit $SOURCE_COMMIT"
     echo "                    of ${SOURCE_REPO:-a repository with no remote}, folder $(basename "$HERE")"
@@ -637,6 +650,11 @@ assemble_web "$SRC" "$OUT" "built $BUILT_UTC from commit ${SOURCE_COMMIT:-unknow
   echo "  Dropped-text check: web/check.pl, taken from the translate.sh of the commit"
   echo "                    this bundle was built from, on Windows too"
   echo
+  echo "Starting it again after a restart (the installers copy these beside the"
+  echo "translate helper; they install nothing)"
+  [ "$WANT_MAC" = 0 ] || echo "  On a Mac:         Start Translation.command"
+  [ "$WANT_WINDOWS" = 0 ] || echo "  On Windows:       Start Translation.cmd, which runs start-translation.ps1"
+  echo
   echo "Test files (test-files/; the installers copy them beside the translate helper)"
   echo "  Extracts from Wikipedia's articles on Earth, CC BY-SA 4.0. Sources,"
   echo "  revisions and what was changed: test-files/README.md and sources.json"
@@ -666,7 +684,7 @@ cat <<EOF
 Copy the whole folder to the airgapped machine on a drive formatted as exFAT,
 which Macs and Windows PCs both read (FAT32 cannot hold files over 4 GB). Then:
 
-  on a Mac        run ./install.sh in Terminal
+  on a Mac        double-click Install.command (or run ./install.sh in Terminal)
   on Windows      double-click install.cmd
 
 Each ends by opening the translation page.

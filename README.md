@@ -83,6 +83,11 @@ virtual disk with its own size limit (Settings > Resources), so a Mac with
 plenty of space can still have a full Docker. The script checks this before
 the long download and stops with advice if it is short.
 
+`--support "TEXT"` names who the people installing should ask for help, on
+one line (a name and how to reach them). It goes into the bundle's
+`bundle.env`, and the installers and "Start Translation" print it as the last
+line of a failure. Without it they print no such line.
+
 The Windows image is built and tested on the Mac as an Intel/AMD image under
 emulation, so Docker Desktop needs Rosetta turned on (Settings > General >
 Virtual Machine Options; it is by default). The script checks that too.
@@ -139,7 +144,52 @@ is fine if the drive is only going to Macs.
 
 ## Install and use (airgapped machine)
 
-On a Mac, `./install.sh` in Terminal. On Windows, double-click `install.cmd`.
+On a Mac, double-click `Install.command`, which runs `install.sh` from its own
+folder in a Terminal window and keeps the window open on the summary or the
+error; `./install.sh` in Terminal is the same thing and takes the options. On
+Windows, double-click `install.cmd`.
+
+Both installers make every check that needs nothing installed before the
+checksum pass and the image load: the macOS version (14 for Ollama, and Docker
+Desktop's minimum where it has to be installed), that both ports are free or
+held by a container of an earlier install, and free disk space against what
+this run will copy. That last figure is added up from the bundle's own files:
+the model files the computer does not already have in full, the LibreTranslate
+image unless the same bundle is already installed, and Ollama and Docker
+Desktop where they are to be installed, plus 1 GB. It is an estimate, so
+`--no-space-check` overrides it. Under 16 GB of memory is a warning, said at
+the start and again at the end, and not a failure.
+
+Installing over an earlier install, they read the installed `bundle.env`
+before replacing it and:
+
+- print which bundle is installed and which is being installed, by build time
+  and commit, and say in capitals when the one on the drive is older (they do
+  not stop)
+- remove the earlier install's LibreTranslate image once the new container has
+  passed its test translation and the page has moved to the new image, if the
+  ID differs and no container uses it. A run that fails before then keeps the
+  old ID on record (`LT_IMAGE_ID_PREVIOUS`) so the next run removes it
+- list each TranslateGemma model the earlier bundle named that this one does
+  not carry and that is still in the model store, with the space its manifest
+  adds up to and the exact `ollama rm` command. Nothing in `~/.ollama` is
+  removed
+- replace an older Ollama only if the installed `bundle.env` says an earlier
+  install put it there (`OLLAMA_APP_BY_INSTALLER=1`, recorded from now on). On
+  a Mac the new app is unpacked beside the old one first; on Windows Ollama's
+  own setup program updates it in place. An Ollama that was there already, or
+  one from a bundle too old to have recorded it, is left with the note on how
+  to switch
+
+A run that fails ends with the same block on both platforms: the step it
+stopped at, that nothing already on the computer was harmed and a re-run is
+safe, where the log is, and the `--support` line if the bundle has one.
+
+The installers put `Start Translation.command` (Mac) or `Start
+Translation.cmd` (Windows) beside the translate helper, for after a restart:
+it opens Docker Desktop and Ollama if they are not running, waits for
+LibreTranslate, Ollama and the page, opens the page, and names whichever of
+the three did not answer.
 
 On a Mac with no Docker, `install.sh` installs Docker Desktop from the bundle.
 It asks first, runs Docker's own installer with `sudo` (so it needs an
@@ -157,6 +207,9 @@ Each run of `install.sh` writes `~/translation-tools/install-DATE.log`: the
 Mac's model, memory and macOS version, the bundle's build time and commit,
 Docker's version and image store, Docker's disk use before and after the image
 is loaded, how long the load took, and everything else it printed.
+`install.ps1` writes a file of the same name with `Start-Transcript`, which
+holds what the script itself printed; how much of what `docker` and `robocopy`
+print reaches it has not been checked.
 
 Both installers copy the test documents to `test-files` beside the translate
 helper, so that translations of them are written there and not into the
@@ -434,7 +487,11 @@ build-bundle.sh        run on the connected Mac
 build-web-patch.sh     builds the small update that replaces the web page
 Dockerfile             official LibreTranslate image + baked-in models
 bundle/                copied into every bundle (each target gets its own scripts)
-  install.sh           run on the airgapped Mac
+  Install.command      double-clicked on the airgapped Mac; runs install.sh
+  install.sh           the Mac installer
+  Start Translation.command
+                       double-clicked after a restart; installed beside
+                         translate.sh
   install-web.sh       starts the web page; run by install.sh, and by hand
                          from a page update
   install-web.cmd      the same for Windows: run by install.ps1, and
@@ -442,6 +499,8 @@ bundle/                copied into every bundle (each target gets its own script
   translate.sh         command-line helper, installed to ~/translation-tools
   install.cmd          double-clicked on the airgapped PC; runs install.ps1
   install.ps1          the Windows installer
+  Start Translation.cmd  the same for Windows as Start Translation.command;
+  start-translation.ps1    runs start-translation.ps1
   translate.cmd        command-line helper for Windows; runs translate.ps1,
   translate.ps1          installed to %USERPROFILE%\translation-tools
   languages.tsv        language codes and names for the TranslateGemma prompt
@@ -464,7 +523,8 @@ dist/                  built bundles (not in git)
 ```
 
 `install.sh` and `translate.sh` use only what ships with macOS: bash 3.2, curl,
-awk, sed, plutil, perl, textutil. Not `iconv`: the macOS build wrongly rejects
+awk, sed, plutil, perl, textutil, and in the installer nc, df, stat, osascript
+and pgrep. Not `iconv`: the macOS build wrongly rejects
 valid UTF-8 that contains long lines.
 
 The `.ps1` scripts use only what ships with Windows 10 and 11: Windows
@@ -599,7 +659,13 @@ installs, reruns, checksum failures, container and port conflicts, image-load
 failures, file copies, smoke tests and launch failures. The installer scripts
 run unchanged; Docker, application setup and service transports are stand-ins.
 The native Windows tests also exercise `install.cmd`, `install-web.cmd` and
-ARM image selection.
+ARM image selection. Both platforms' cases cover the checks made before the
+checksum pass (ports, disk space, memory, and on the Mac the macOS version),
+installing over an earlier install (which bundle is newer, the earlier image
+removed or kept, leftover models listed, Ollama replaced only where an earlier
+install put it there), the closing lines of a failed run and the support
+line, and "Start Translation" with each of the three services not answering.
+The Mac cases run `Install.command`.
 
 [The regression workflow](.github/workflows/regression.yml) runs on macOS and
 Windows, including Windows PowerShell 5.1 and PowerShell 7. The Mac tests need
@@ -795,6 +861,37 @@ words each:
 ### Not yet done
 
 The Windows items can't be done from a Mac.
+
+- **`Install.command` double-clicked in Finder at all**, and in particular
+  from an exFAT drive on a clean Mac. The tests run it with `bash`. Whether
+  Finder opens it from exFAT (where every file shows as executable), whether
+  Gatekeeper objects to it there or after a copy to the Mac, and whether the
+  Terminal window stays open on the summary have not been tried. The same
+  goes for `Start Translation.command` in `~/translation-tools`, and for
+  `Start Translation.cmd` on Windows
+- **the checks at the top of the installers against real machines.** The
+  disk-space sum against a real bundle and a nearly full disk (the factors
+  for Ollama and Docker Desktop unpacked are guesses, three and four times
+  the download), whether Docker's disk file grows by what the sum assumes,
+  and the memory warning on an 8 GB Mac. The port check with Docker stopped
+  and something else on the port has only been run against stand-ins
+- **installing a newer bundle over an older one with real Docker and
+  Ollama.** Removing the earlier image (that `docker image rm` by ID frees
+  the space under both of Docker's image stores, and that the `ancestor`
+  filter sees every container using it: the filter was checked once by hand
+  against Docker 29.9.3 with the overlayfs store, nothing more), the size
+  quoted for a leftover model against what `ollama rm` then frees, and
+  replacing Ollama: quitting the running app with `osascript`, swapping the
+  app in `/Applications`, and on Windows `OllamaSetup.exe` run silently over
+  an older Ollama that is running
+- `install.ps1`'s log: that `Start-Transcript` works in the window
+  `install.cmd` opens, and what of Docker's and robocopy's output it holds
+- "Start Translation" against real services after a real restart: how long
+  Docker Desktop takes, whether five minutes is enough, and on Windows
+  whether Docker Desktop is where the script looks for it
+- `build-bundle.sh --support`, and a build since the new files were added:
+  no bundle has been built that carries `Install.command` or the "Start
+  Translation" files
 
 - **a real installation on a Windows PC with Docker Desktop and Ollama.**
   The regression workflow now exercises the installers and helpers on Windows
