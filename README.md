@@ -527,7 +527,9 @@ bundle/                copied into every bundle (each target gets its own script
   Hoshi Offline Translation.applescript
                        install.sh compiles it into the Mac app
   icons/               hoshi.icns (Mac app), hoshi.ico (Start menu), and
-                         source/: the icon pack's SVG masters and artwork
+                         source/: the SVG masters of the icons used (icon.svg
+                         for the page, icon-macos.svg for the app) and the
+                         icon pack's README
   install-web.sh       starts the web page; run by install.sh, and by hand
                          from a page update
   install-web.cmd      the same for Windows: run by install.ps1, and
