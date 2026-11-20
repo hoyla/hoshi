@@ -1,8 +1,8 @@
 #!/bin/bash
-# Build the small update that puts the translation web page on a Mac where a
-# bundle is already installed: a newer page than the bundle carried, or the
-# page itself if the bundle had none. A few hundred kilobytes: the page runs
-# on the LibreTranslate image and the models that Mac already has.
+# Build the small update that puts the translation web page on a Mac or a
+# Windows PC where a bundle is already installed: a newer page than the bundle
+# carried, or the page itself if the bundle had none. A few hundred kilobytes:
+# the page runs on the LibreTranslate image and the models already there.
 #
 #   ./build-web-patch.sh [--out DIR] [--allow-dirty]
 
@@ -41,7 +41,7 @@ BUILT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 mkdir -p "$OUT"
 
 . "$HERE/web/assemble.sh"
-assemble_web "$HERE" "$OUT" "built $BUILT from commit $SOURCE_COMMIT${SOURCE_CHANGES:+ plus uncommitted changes}"
+assemble_web "$HERE" "$OUT" "built $BUILT from commit $SOURCE_COMMIT${SOURCE_CHANGES:+ plus uncommitted changes}" "mac,windows"
 cp "$HERE/LICENSE" "$OUT/LICENSE.txt"
 cp "$HERE/NOTICE" "$OUT/NOTICE.txt"
 
@@ -49,13 +49,14 @@ cat > "$OUT/README.txt" <<TXT
 TRANSLATION WEB PAGE: an update for the offline translation bundle
 Built $BUILT from commit $SOURCE_COMMIT${SOURCE_CHANGES:+ plus uncommitted changes}
 
-This puts the translation page on a Mac where the offline translation bundle
-is ALREADY installed. It replaces the page the bundle's installer started,
-or adds the page if that bundle had none. It is small because it uses the
-LibreTranslate image and the TranslateGemma models that Mac already has.
-Nothing here changes those, the translate.sh helper, or any translation.
+This puts the translation page on a Mac or a Windows PC where the offline
+translation bundle is ALREADY installed. It replaces the page the bundle's
+installer started, or adds the page if that bundle had none. It is small
+because it uses the LibreTranslate image and the TranslateGemma models the
+computer already has. Nothing here changes those, the translate helper, or
+any translation.
 
-TO INSTALL
+TO INSTALL ON A MAC
   1. Copy this whole folder to the Mac.
   2. Make sure Docker Desktop and Ollama are running.
   3. Open Terminal, type   cd   and a space, drag this folder onto the
@@ -63,7 +64,12 @@ TO INSTALL
 
          bash install-web.sh
 
-  It ends with "==> Done" and opens the page: http://127.0.0.1:5080
+TO INSTALL ON WINDOWS
+  1. Copy this whole folder to the PC.
+  2. Make sure Docker Desktop and Ollama are running.
+  3. Double-click   install-web.cmd
+
+  Either ends with "==> Done" and opens the page: http://127.0.0.1:5080
 
 USING IT
   Choose a document or paste text, choose TranslateGemma or LibreTranslate,
@@ -76,30 +82,33 @@ USING IT
   translated by LibreTranslate. A translation with no warnings can still be
   wrong.
 
-  Translations are saved in   ~/translation-tools/translations   each with
+  Translations are saved in   ~/translation-tools/translations   (on
+  Windows, translation-tools\translations in your user folder) each with
   a .provenance.json file recording how it was made. With TranslateGemma the
   exact text taken out of the document and sent to the model is saved beside
   the translation. The document you chose is not copied there; the
   provenance file records its name and SHA-256.
 
-  The page answers only on this Mac (127.0.0.1). Other computers can't
-  reach it.
+  The page answers only on the computer it is installed on (127.0.0.1).
+  Other computers can't reach it.
 
 IF THE PAGE IS ALREADY INSTALLED
   Install this one the same way; it replaces the page and keeps the
   translations.
 
-IF THIS MAC ALSO HAS LIBRETRANSLATE'S OWN PAGE
-  A Mac whose bundle had no translation page has LibreTranslate's own at
-  http://127.0.0.1:5050, and this update leaves it there. That page keeps
-  no record of a translation and makes no check of one, so use this one.
+IF THE COMPUTER ALSO HAS LIBRETRANSLATE'S OWN PAGE
+  A computer whose bundle had no translation page, as every Windows bundle
+  once was, has LibreTranslate's own at http://127.0.0.1:5050, and this
+  update leaves it there. That page keeps no record of a translation and
+  makes no check of one, so use this one.
 
 TO REMOVE IT
   docker rm -f translation-web
   Translations already made stay where they are.
 
-Run   bash install-web.sh --help   for options (port, folder).
-A log of each run is kept in ~/translation-tools/install-web-*.log
+Run   bash install-web.sh --help   (on Windows, in Command Prompt in this
+folder,   install-web.cmd --help)   for options (port, folder).
+On a Mac a log of each run is kept in ~/translation-tools/install-web-*.log
 
 WHO MADE THIS
   The page is part of Hoshi, https://github.com/hoyla/hoshi, which is free

@@ -91,7 +91,7 @@
 
   <section id="history" hidden>
     <h2>Earlier translations</h2>
-    <p class="hint">Everything translated here is kept in <code id="folder"></code>, each with a provenance file recording how it was made. <button type="button" id="folder-copy" class="linkish">Copy this location</button>, then in Finder press ⌘⇧G and paste to open the folder.</p>
+    <p class="hint">Everything translated here is kept in <code id="folder"></code>, each with a provenance file recording how it was made. <button type="button" id="folder-copy" class="linkish">Copy this location</button>, <span data-os="mac">then in Finder press ⌘⇧G and paste</span><span data-os="windows" hidden>then in File Explorer click the address bar, paste and press Enter</span> to open the folder.</p>
     <table>
       <thead><tr><th>Translation</th><th>From</th><th>Into</th><th>Engine</th><th>When (UTC)</th><th></th></tr></thead>
       <tbody id="history-rows"></tbody>
@@ -106,7 +106,7 @@
     <h2>What is this?</h2>
     <p>A tool for translating documents on this computer alone. It needs no
     internet and sends nothing anywhere: the document, the translation and
-    everything about them stay on this Mac. It is meant for material that must
+    everything about them stay on this computer. It is meant for material that must
     not leave the newsroom.</p>
 
     <h3>Two translators, and which to pick</h3>
@@ -126,13 +126,13 @@
     <p>What to do:</p>
     <ul>
       <li><strong>TranslateGemma not available.</strong> The Ollama app isn't
-      running. Open Ollama from Applications, wait a few seconds, then reload
+      running. Open Ollama from <span data-os="mac">Applications</span><span data-os="windows" hidden>the Start menu</span>, wait a few seconds, then reload
       this page.</li>
       <li><strong>The page won't open at all.</strong> This page itself runs in
       Docker Desktop, so if Docker is off there is nothing to open. (You are
       reading this, so Docker is running on this computer.) If a colleague's
       page won't open, Docker Desktop on their computer isn't running: they
-      should open Docker Desktop from Applications, wait until it says it is
+      should open Docker Desktop from <span data-os="mac">Applications</span><span data-os="windows" hidden>the Start menu</span>, wait until it says it is
       running, then open the page again. A colleague whose tool is working can
       translate for them in the meantime.</li>
     </ul>
@@ -141,7 +141,7 @@
     <ul>
       <li>Every translation is saved in <code id="help-folder"></code>
       (<button type="button" id="help-folder-copy" class="linkish">copy</button>,
-      then in Finder press ⌘⇧G and paste to open it), each
+      <span data-os="mac">then in Finder press ⌘⇧G and paste</span><span data-os="windows" hidden>then in File Explorer click the address bar, paste and press Enter</span> to open it), each
       with a small record of how it was made. These are kept until you delete
       them yourself; the tool never removes or overwrites one.</li>
       <li>The document you upload is held only in memory while it is worked on.
@@ -151,15 +151,16 @@
 
     <h3>Putting this on another offline computer</h3>
     <p>The installer is built on a Mac that <em>does</em> have internet, then
-    carried across &mdash; it cannot be built on an offline computer. In short:</p>
+    carried across &mdash; it cannot be built on an offline computer, or on
+    Windows. One bundle can install on Macs, on Windows PCs or on both. In short:</p>
     <ol>
       <li>On a connected Mac, get the project's code (clone its repository).</li>
       <li>Build the installer bundle by following the repository's README (the
       <code>build-bundle.sh</code> script).</li>
       <li>Copy the finished bundle onto a USB stick.</li>
-      <li>Copy it from the stick onto the offline computer and run
-      <code>install.sh</code>, as the bundle's own <code>README.txt</code>
-      describes.</li>
+      <li>Copy it from the stick onto the offline computer and run its
+      installer (<code>install.sh</code> on a Mac, <code>install.cmd</code> on
+      Windows), as the bundle's own <code>README.txt</code> describes.</li>
     </ol>
 
     <p class="hint" id="help-build"></p>

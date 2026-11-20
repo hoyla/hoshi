@@ -13,7 +13,9 @@ is compared with its source by the helper's own dropped-text check (check.py).
 
 Runs inside a container started from the LibreTranslate image, which already
 has Flask, waitress, lxml, PyMuPDF and BeautifulSoup. It listens on localhost
-only and refuses requests that name any other host.
+only and refuses requests that name any other host. The computer the container
+is on is a Mac or a Windows PC; the page is the same on both but for the few
+words that say where to find things.
 """
 
 import hashlib
@@ -61,6 +63,8 @@ OLLAMA_API = env("OLLAMA_API", "http://host.docker.internal:11434").rstrip("/")
 # Where translations go, and what that folder is called on the computer itself
 DATA_DIR = env("DATA_DIR", "/data")
 HOST_DATA_DIR = env("HOST_DATA_DIR", DATA_DIR)
+# "mac" or "windows": the installer says which, for the page's directions
+HOST_OS = env("HOST_OS", "mac")
 UPLOAD_DIR = env("UPLOAD_DIR", os.path.join(tempfile.gettempdir(), "translation-web-uploads"))
 LANGFILE = env("LANGFILE", os.path.join(HERE, "languages.tsv"))
 DEFAULT_MODEL = env("DEFAULT_MODEL", "translategemma:12b")
@@ -696,6 +700,7 @@ def config():
         "tool": TOOL,
         "build": BUILD,
         "folder": HOST_DATA_DIR,
+        "os": HOST_OS,
         "libre": {
             "ok": info is not None,
             "version": (info or {}).get("version"),

@@ -41,6 +41,9 @@ function languageName(code) {
 // ------------------------------------------------------------------- start-up
 async function start() {
   config = await api("/api/config");
+  // The directions that differ between a Mac and a Windows PC are both in the
+  // page; show the ones for the computer it is on.
+  for (const node of document.querySelectorAll("[data-os]")) node.hidden = node.dataset.os !== config.os;
   $("status").replaceChildren(
     el("li", { className: config.gemma.ok ? "up" : "", title: config.gemma.error || "" },
       config.gemma.ok ? "TranslateGemma ready" : "TranslateGemma not available"),
@@ -82,8 +85,9 @@ $("help-open").onclick = () => $("help").showModal();
 $("help-close").onclick = () => $("help").close();
 $("help").addEventListener("click", (e) => { if (e.target === $("help")) $("help").close(); });
 
-// Clicking a path can't open Finder from a page served over http, so offer the
-// next best thing: copy it for Finder's Go to Folder (Cmd-Shift-G).
+// Clicking a path can't open Finder or File Explorer from a page served over
+// http, so offer the next best thing: copy it for Finder's Go to Folder
+// (Cmd-Shift-G) or File Explorer's address bar.
 function wireCopy(buttonId, getText) {
   const btn = $(buttonId);
   if (!btn) return;

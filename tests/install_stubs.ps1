@@ -17,11 +17,22 @@ function Write-TestCall([string]$Command, $Values) {
   [System.IO.File]::AppendAllText((Join-Path $testRoot 'calls.jsonl'), $line + "`n")
 }
 
+$stateFile = Join-Path $testRoot 'state.json'
+
+function Get-TestContainers {
+  $prop = (Get-Content -Raw -LiteralPath $stateFile | ConvertFrom-Json).PSObject.Properties['containers']
+  if ($null -eq $prop) { return @() }
+  return @($prop.Value)
+}
+
+function Set-TestContainers($Names) {
+  [System.IO.File]::WriteAllText($stateFile, (ConvertTo-Json -Compress -InputObject @{ containers = @($Names) }))
+}
+
 function docker {
   Write-TestCall 'docker' $args
   $global:LASTEXITCODE = 0
-  $stateFile = Join-Path $testRoot 'state.json'
-  $state = Get-Content -Raw -LiteralPath $stateFile | ConvertFrom-Json
+  $byId = ([string]$args[-1]).StartsWith('sha256:')
   if ($args[0] -eq 'info') {
     if (Test-Setting 'docker_down') { $global:LASTEXITCODE = 1; return }
     if (Test-Setting 'windows_containers') { 'windows/x86_64'; return }
@@ -32,19 +43,23 @@ function docker {
     if (-not [System.IO.File]::Exists($args[-1])) { throw 'test image missing' }
     'Loaded image'
   } elseif ($args[0] -eq 'image' -and $args[1] -eq 'inspect') {
-    if (Test-Setting 'image_missing') { $global:LASTEXITCODE = 1; return }
-    'sha256:test-loaded-image'
+    if ((Test-Setting 'image_missing') -or ((Test-Setting 'tag_missing') -and -not $byId)) { $global:LASTEXITCODE = 1; return }
+    if ((Test-Setting 'tag_moved') -and -not $byId) { 'sha256:moved-tag-image' } else { 'sha256:test-loaded-image' }
   } elseif ($args[0] -eq 'container' -and $args[1] -eq 'inspect') {
-    if (-not $state.container -and -not (Test-Setting 'foreign_container')) { $global:LASTEXITCODE = 1; return }
+    if ($args -contains '{{.Image}}') {
+      if (Test-Setting 'libre_container_missing') { $global:LASTEXITCODE = 1; return }
+      if (Test-Setting 'libre_image_changed') { 'sha256:another-service-image' } else { 'sha256:test-loaded-image' }
+      return
+    }
+    if ((Get-TestContainers) -notcontains $args[-1] -and -not (Test-Setting 'foreign_container')) { $global:LASTEXITCODE = 1; return }
     if (Test-Setting 'foreign_container') { '{"airgapped-translation":"0"}' }
     else { '{"airgapped-translation":"1"}' }
   } elseif ($args[0] -eq 'rm') {
-    $state.container = $false
-    [System.IO.File]::WriteAllText($stateFile, (ConvertTo-Json $state))
+    $gone = $args[-1] # not $args inside the filter: a script block has its own
+    Set-TestContainers @(Get-TestContainers | Where-Object { $_ -ne $gone })
   } elseif ($args[0] -eq 'run') {
     if (Test-Setting 'run_fails') { $global:LASTEXITCODE = 1; return }
-    $state.container = $true
-    [System.IO.File]::WriteAllText($stateFile, (ConvertTo-Json $state))
+    Set-TestContainers (@(Get-TestContainers) + $args[[array]::IndexOf($args, '--name') + 1])
     'test-container-id'
   } elseif ($args[0] -eq 'logs') {
     'test container log'
@@ -93,14 +108,20 @@ function Start-Sleep { param($Seconds) }
 Add-Type -IgnoreWarnings -TypeDefinition @'
 using System;
 using System.Net;
-public sealed class HoshiTestResponse : WebResponse { public override void Close() { } }
+public sealed class HoshiTestResponse : WebResponse {
+    public override void Close() { }
+    public override System.IO.Stream GetResponseStream() {
+        return new System.IO.MemoryStream(System.Text.Encoding.UTF8.GetBytes("{\"gemma\":{\"ok\":true},\"libre\":{\"ok\":true}}"));
+    }
+}
 public sealed class HoshiTestRequest : WebRequest {
     readonly Uri uri;
     public HoshiTestRequest(Uri value) { uri = value; }
     public override int Timeout { get; set; }
     public override IWebProxy Proxy { get; set; }
     public override WebResponse GetResponse() {
-        string variable = uri.AbsolutePath == "/api/version" ? "HOSHI_TEST_OLLAMA_DOWN" : "HOSHI_TEST_LIBRE_DOWN";
+        string variable = uri.AbsolutePath == "/api/version" ? "HOSHI_TEST_OLLAMA_DOWN"
+            : uri.AbsolutePath == "/api/config" ? "HOSHI_TEST_WEB_DOWN" : "HOSHI_TEST_LIBRE_DOWN";
         if (Environment.GetEnvironmentVariable(variable) == "1") throw new WebException("test service is down");
         return new HoshiTestResponse();
     }

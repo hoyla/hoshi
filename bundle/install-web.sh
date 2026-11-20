@@ -172,6 +172,7 @@ docker run -d --name "$NAME" --label airgapped-translation=1 \
   -e PYTHONDONTWRITEBYTECODE=1 \
   -e LANGFILE=/opt/languages.tsv \
   -e DATA_DIR=/data -e HOST_DATA_DIR="$FOLDER" -e UPLOAD_DIR=/uploads \
+  -e HOST_OS=mac \
   -e LT_URL="http://host.docker.internal:${LT_URL##*:}" \
   -e OLLAMA_API="http://host.docker.internal:${OLLAMA_ADDRESS##*:}" \
   -e LT_IMAGE="$IMAGE" -e LT_IMAGE_ID="$IMAGE_ID" \
