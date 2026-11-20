@@ -18,8 +18,8 @@ More than 50 languages are supported.
 | Runs in | Docker | Ollama, natively on macOS or Windows |
 | Good for | Whole documents with formatting (.docx, .pptx, .pdf, .html ...), quick gisting | Best available quality on plain text |
 | Languages | 50 ([every Argos Translate model](https://www.argosopentech.com/argospm/index/)), 100 packages) | 55 core languages |
-| On a Mac | [Hoshi's page](#the-web-page-mac-only) on `127.0.0.1:5080`, `translate.sh` | The same page, `translate.sh`, Ollama's chat window |
-| On Windows | Its own web page on `127.0.0.1:5050`, `translate.cmd` | `translate.cmd`, Ollama's chat window |
+| On a Mac | [Hoshi's page](#the-web-page) on `127.0.0.1:5080`, `translate.sh` | The same page, `translate.sh`, Ollama's chat window |
+| On Windows | The same page on `127.0.0.1:5080`, `translate.cmd` | The same page, `translate.cmd`, Ollama's chat window |
 | Size in bundle | 9 to 11 GB per target | about 8 GB, shared |
 
 Both cover English, Russian, French, Chinese, Hebrew and Arabic.
@@ -110,8 +110,8 @@ about an hour at 5 MB/s. Both targets come to about 29 GB of downloads. It:
    Ollama on a private port so your own Ollama setup is untouched, and runs a
    test translation from that store
 5. copies in the scripts, the user guide and the test documents in
-   [bundle/test-files/](bundle/test-files/), and for the Mac target
-   [the web page](#the-web-page-mac-only), after checking that the page
+   [bundle/test-files/](bundle/test-files/), and
+   [the web page](#the-web-page), after checking that the page
    splits text exactly as `translate.sh` does
 6. writes `MANIFEST.txt` (the commit of these scripts, versions, digests, test
    results, every language model's version) and `SHA256SUMS` for every file
@@ -140,11 +140,11 @@ administrator's password), opens Docker and waits for it. It does not accept
 Docker's service agreement: the person at the Mac does that in Docker's window.
 If Docker is installed but not running, it starts it.
 
-`install.sh` also starts [the web page](#the-web-page-mac-only) and ends by
+`install.sh` also starts [the web page](#the-web-page) and ends by
 opening it, and starts LibreTranslate with its own page turned off.
 `--no-web` installs neither change: no page from Hoshi, and LibreTranslate's
-own on port 5050. `install.cmd` has no page to start, so on Windows
-LibreTranslate's own page stays.
+own on port 5050. `install.cmd` does the same on Windows, with the same
+options.
 
 Each run of `install.sh` writes `~/translation-tools/install-DATE.log`: the
 Mac's model, memory and macOS version, the bundle's build time and commit,
@@ -163,31 +163,45 @@ Then see [bundle/README.txt](bundle/README.txt), which ships inside the bundle
 and is written for the people using the machine: copying the bundle over,
 installing on each platform, using it, and what to do when something fails.
 
-## The web page (Mac only at present)
+## The web page
 
 [web/](web/) is a page for translating a document or pasted text with either
 engine, at `http://127.0.0.1:5080`. It runs in a second container started from
 the LibreTranslate image already in Docker, with the page's files handed to it
 from `~/translation-tools/web`. The image is not rebuilt, so the image ID that
-LibreTranslate sidecars record does not change. There is no Windows installer
-for it.
+LibreTranslate sidecars record does not change. Because the container is
+Linux on a Mac and on a Windows PC alike, the page is the same files on both;
+only the installer that starts it differs.
 
-- **Every Mac bundle carries it**, and `install.sh` starts it by running
-  [bundle/install-web.sh](bundle/install-web.sh) as its last step.
+- **Every bundle carries it.** `install.sh` starts it by running
+  [bundle/install-web.sh](bundle/install-web.sh) as its last step, and
+  `install.cmd` by running [bundle/install-web.ps1](bundle/install-web.ps1).
+- **The Windows side has not yet been run on a Windows PC** (as of
+  2026-11-19); the regression tests run `install-web.ps1` with a stand-in for
+  Docker. Two things can only be shown on a real one: that the container
+  reaches Ollama, which listens on 127.0.0.1 alone, through
+  `host.docker.internal` as it does on a Mac; and that the translations
+  folder, a Windows folder handed to a Linux container, refuses to write over
+  an existing file as the page relies on.
 - **It can be replaced without copying a bundle again.**
   `./build-web-patch.sh` builds `dist/translation-web-DATE-TIME/`, about
-  170 KB, and `bash install-web.sh` in that folder replaces the page on a Mac
-  where a bundle is installed. Both builders lay the page out with
+  200 KB, and `bash install-web.sh` in that folder (on Windows,
+  `install-web.cmd`) replaces the page on a computer where a bundle is
+  installed. Both builders lay the page out with
   [web/assemble.sh](web/assemble.sh), so an update and a bundle built from
   the same commit carry the same files.
-- **Where `install.sh` starts the page, LibreTranslate's own is turned off.**
+- **Where an installer starts the page, LibreTranslate's own is turned off.**
   That page keeps no record of a translation and makes no check of one, so it
-  is not left beside one that does. `install.sh` starts the LibreTranslate
-  container with `LT_DISABLE_WEB_UI=true`, which makes `/` and `/js/app.js`
-  answer 404 and leaves the API, which the page and `translate.sh` use, as it
-  was. `install-web.sh` run on its own never touches the LibreTranslate
-  container, so a Mac whose bundle had no page and which got one as an update
-  has both until a bundle is installed on it again.
+  is not left beside one that does. `install.sh` and `install.cmd` start the
+  LibreTranslate container with `LT_DISABLE_WEB_UI=true`, which makes `/` and
+  `/js/app.js` answer 404 and leaves the API, which the page and the
+  translate helpers use, as it was. The web installer run on its own never
+  touches the LibreTranslate container, so a computer whose bundle had no
+  page (every Windows bundle built before this) and which got one as an
+  update has both until a bundle is installed on it again.
+- **The page's directions follow the computer.** The web installer passes
+  `HOST_OS` (`mac` or `windows`) to the container, and the page shows Finder
+  or File Explorer, Applications or the Start menu, to match.
 - **Same TranslateGemma method as `translate.sh`.** [web/gemma.py](web/gemma.py)
   is a port of the helper's splitter, prompt and missing-text check.
   `python3 web/tests/test_parity.py` runs the helper's own awk on the same
@@ -320,15 +334,16 @@ take the text out of the file and its translation:
 | | Compared | Recorded as `not checked` |
 |---|---|---|
 | `translate.sh` (Mac) | .txt, .srt; .docx, .odt and .html through macOS's `textutil` | .pdf, .pptx, .odp, .epub |
-| The web page | .txt, .srt; .docx, .odt and .html through [web/extract.py](web/extract.py) | .pdf, .pptx, .odp, .epub |
+| The web page (Mac and Windows) | .txt, .srt; .docx, .odt and .html through [web/extract.py](web/extract.py) | .pdf, .pptx, .odp, .epub |
 | `translate.ps1` (Windows) | .txt, .srt; .docx read by the script itself | .odt, .html, .pdf, .pptx, .odp, .epub |
 
 LibreTranslate's own page at port 5050 does no checking at all.
 
 **One program, and one copy of it.** The check is a perl program inside
 `translate.sh`, kept to perl's core so that the minimal perl in the
-LibreTranslate image can run it; the web page runs that same file. Windows has
-no perl, so `translate.ps1` carries the check rewritten in PowerShell.
+LibreTranslate image can run it; the web page runs that same file, on Windows
+too, since it runs it in the container. Windows itself has no perl, so
+`translate.ps1` carries the check rewritten in PowerShell.
 `calibration/windows.sh` runs the two on the same 4,185 pairs of texts (the
 calibration translations whole, each paragraph alone, each copy with a
 sentence removed, and cases made up for line ends, wrapped text, merged
@@ -408,6 +423,8 @@ bundle/                copied into every bundle (each target gets its own script
   install.sh           run on the airgapped Mac
   install-web.sh       starts the web page; run by install.sh, and by hand
                          from a page update
+  install-web.cmd      the same for Windows: run by install.ps1, and
+  install-web.ps1        double-clicked from a page update
   translate.sh         command-line helper, installed to ~/translation-tools
   install.cmd          double-clicked on the airgapped PC; runs install.ps1
   install.ps1          the Windows installer
@@ -562,7 +579,8 @@ It tests output integrity and the Mac, Windows and web installers: successful
 installs, reruns, checksum failures, container and port conflicts, image-load
 failures, file copies, smoke tests and launch failures. The installer scripts
 run unchanged; Docker, application setup and service transports are stand-ins.
-The native Windows tests also exercise `install.cmd` and ARM image selection.
+The native Windows tests also exercise `install.cmd`, `install-web.cmd` and
+ARM image selection.
 
 [The regression workflow](.github/workflows/regression.yml) runs on macOS and
 Windows, including Windows PowerShell 5.1 and PowerShell 7. The Mac tests need

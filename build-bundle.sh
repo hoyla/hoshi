@@ -11,8 +11,8 @@
 #     without extra setup on Windows
 #   - Docker Desktop's own installer for Macs
 #   - an installer and a translate helper for each target, the translation
-#     web page for Macs, a manifest of exactly what was bundled, and checksums
-#     for every file
+#     web page, a manifest of exactly what was bundled, and checksums for
+#     every file
 #
 # Re-running into the same --out folder resumes: Docker layers are cached and
 # the model pull picks up where it stopped.
@@ -130,12 +130,10 @@ for tool in docker curl shasum ditto codesign spctl plutil nc perl hdiutil; do
   command -v "$tool" >/dev/null 2>&1 || die "missing required tool: $tool"
 done
 docker info >/dev/null 2>&1 || die "Docker isn't running. Start Docker Desktop and try again."
-# The web page a Mac bundle carries must cut text into pieces exactly as
+# The web page every bundle carries must cut text into pieces exactly as
 # translate.sh does.
-if [ "$WANT_MAC" = 1 ]; then
-  command -v python3 >/dev/null 2>&1 || die "missing required tool: python3 (it runs the web page's test)"
-  python3 "$HERE/web/tests/test_parity.py" || die "web/gemma.py and bundle/translate.sh disagree; not building"
-fi
+command -v python3 >/dev/null 2>&1 || die "missing required tool: python3 (it runs the web page's test)"
+python3 "$HERE/web/tests/test_parity.py" || die "web/gemma.py and bundle/translate.sh disagree; not building"
 
 # Which version of these scripts the bundle is built from, for the manifest. A
 # bundle built from files that differ from the commit can't be traced to them.
@@ -192,7 +190,7 @@ printf 'BUNDLE_BUILT_UTC=%s\n' "$BUILT_UTC" > "$OUT/bundle.env"
 # guide, manifest and checksums until the last step replaces them, describing
 # files this build has since changed. Take them out now and say why.
 rm -f "$OUT/MANIFEST.txt" "$OUT/SHA256SUMS" "$OUT/README.txt" "$OUT/languages.tsv" \
-  "$OUT/LICENSE.txt" "$OUT/NOTICE.txt" "$OUT"/install.* "$OUT/install-web.sh" "$OUT"/translate.*
+  "$OUT/LICENSE.txt" "$OUT/NOTICE.txt" "$OUT"/install.* "$OUT"/install-web.* "$OUT"/translate.*
 rm -rf "$OUT/test-files" "$OUT/licences" "$OUT/web"
 mkdir "$OUT/licences"
 UNFINISHED="$OUT/BUILD-NOT-FINISHED.txt"
@@ -519,7 +517,6 @@ INSTALLS_ON=""
 if [ "$WANT_MAC" = 1 ]; then
   cp "$SRC/bundle/install.sh" "$SRC/bundle/translate.sh" "$OUT/"
   chmod +x "$OUT/install.sh" "$OUT/translate.sh"
-  assemble_web "$SRC" "$OUT" "built $BUILT_UTC from commit ${SOURCE_COMMIT:-unknown}${SOURCE_CHANGES:+ plus uncommitted changes}"
   INSTALLS_ON="Apple Silicon Macs (install.sh)"
 fi
 if [ "$WANT_WINDOWS" = 1 ]; then
@@ -530,6 +527,7 @@ if [ "$WANT_WINDOWS" = 1 ]; then
   done
   INSTALLS_ON="${INSTALLS_ON:+$INSTALLS_ON; }Windows PCs (install.cmd)"
 fi
+assemble_web "$SRC" "$OUT" "built $BUILT_UTC from commit ${SOURCE_COMMIT:-unknown}${SOURCE_CHANGES:+ plus uncommitted changes}" "$TARGETS"
 
 {
   echo "BUNDLE_BUILT_UTC=$BUILT_UTC"
@@ -618,14 +616,14 @@ fi
       echo "The $ARCH image holds the same models and versions."
     fi
   done
-  if [ "$WANT_MAC" = 1 ]; then
-    echo
-    echo "Translation page (Macs only; install.sh starts it with install-web.sh)"
-    echo "  Files:            web/"
-    echo "  Runs in:          a second container made from the arm64 LibreTranslate"
-    echo "                    image above, which is not changed"
-    echo "  Dropped-text check: web/check.pl, taken from translate.sh in this bundle"
-  fi
+  echo
+  echo "Translation page (the installer starts it: install.sh with install-web.sh,"
+  echo "install.cmd with install-web.ps1)"
+  echo "  Files:            web/"
+  echo "  Runs in:          a second container made from the LibreTranslate image"
+  echo "                    above that the computer uses, which is not changed"
+  echo "  Dropped-text check: web/check.pl, taken from the translate.sh of the commit"
+  echo "                    this bundle was built from, on Windows too"
   echo
   echo "Test files (test-files/; the installers copy them beside the translate helper)"
   echo "  Extracts from Wikipedia's articles on Earth, CC BY-SA 4.0. Sources,"
@@ -656,8 +654,10 @@ cat <<EOF
 Copy the whole folder to the airgapped machine on a drive formatted as exFAT,
 which Macs and Windows PCs both read (FAT32 cannot hold files over 4 GB). Then:
 
-  on a Mac        run ./install.sh in Terminal; it ends by opening the translation page
+  on a Mac        run ./install.sh in Terminal
   on Windows      double-click install.cmd
+
+Each ends by opening the translation page.
 
 README.txt inside the folder has the full instructions.
 EOF

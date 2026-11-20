@@ -1,4 +1,5 @@
 # Install the offline translation bundle on an airgapped Windows PC.
+# Puts on both engines, the translate helper and the translation web page.
 #
 # Needs only Docker Desktop and what ships with Windows 10 and 11 (Windows
 # PowerShell 5.1, robocopy). Run it through install.cmd, which gets past the
@@ -17,11 +18,15 @@ $ENVFILE = Join-Path $HERE 'bundle.env'
 
 $PORT = '5050' # the same as on a Mac, where AirPlay Receiver holds 5000
 $NAME = 'libretranslate'
+$WEB_PORT = '5080'
+$WEB_NAME = 'translation-web'
 $PREFIX = ''
 $DO_VERIFY = $true
 $DO_DOCKER = $true
 $DO_OLLAMA = $true
+$DO_WEB = $true
 $DO_LAUNCH = $true
+$DO_OPEN = $true
 
 # So the test translations, which have accents, are read back and shown intact.
 try { [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false) } catch { }
@@ -32,12 +37,17 @@ Usage: install.cmd [options]
 
   --port N         Local port for LibreTranslate (default: $PORT)
   --name NAME      Docker container name (default: $NAME)
+  --web-port N     Local port for the translation page (default: $WEB_PORT)
+  --web-name NAME  Docker container name for the page (default: $WEB_NAME)
   --prefix DIR     Where the translate helper goes (default: %USERPROFILE%\translation-tools)
   --skip-verify    Don't check the bundle's checksums first
-  --no-docker      Skip LibreTranslate
+  --no-docker      Skip LibreTranslate and, with it, the translation page
   --no-ollama      Skip Ollama and its models
+  --no-web         Skip the translation page. LibreTranslate then shows its
+                   own page, which keeps no record and makes no checks
   --no-launch      Install Ollama but don't wait for it or test it
                    (its own installer still starts it)
+  --no-open        Don't open the translation page in a browser at the end
   -h, --help       Show this help
 "@
 }
@@ -106,22 +116,27 @@ $usageError = ''
 for ($i = 0; $i -lt $ARGV.Length -and -not $usageError; $i++) {
   $arg = [string]$ARGV[$i]
   $value = ''
-  if (@('--port', '--name', '--prefix') -ccontains $arg) {
+  if (@('--port', '--name', '--web-port', '--web-name', '--prefix') -ccontains $arg) {
     if ($i + 1 -ge $ARGV.Length -or -not [string]$ARGV[$i + 1]) { $usageError = "$arg needs a value"; break }
     $i++
     $value = [string]$ARGV[$i]
   }
   if ($arg -ceq '--port') { $PORT = $value }
   elseif ($arg -ceq '--name') { $NAME = $value }
+  elseif ($arg -ceq '--web-port') { $WEB_PORT = $value }
+  elseif ($arg -ceq '--web-name') { $WEB_NAME = $value }
   elseif ($arg -ceq '--prefix') { $PREFIX = $value }
   elseif ($arg -ceq '--skip-verify') { $DO_VERIFY = $false }
   elseif ($arg -ceq '--no-docker') { $DO_DOCKER = $false }
   elseif ($arg -ceq '--no-ollama') { $DO_OLLAMA = $false }
+  elseif ($arg -ceq '--no-web') { $DO_WEB = $false }
   elseif ($arg -ceq '--no-launch') { $DO_LAUNCH = $false }
+  elseif ($arg -ceq '--no-open') { $DO_OPEN = $false }
   elseif ($arg -ceq '-h' -or $arg -ceq '--help') { Show-Usage; exit 0 }
   else { $usageError = "unknown option: $arg" }
 }
 if (-not $usageError -and $PORT -notmatch '^[0-9]{1,5}$') { $usageError = "--port must be a number, not '$PORT'" }
+if (-not $usageError -and $WEB_PORT -notmatch '^[0-9]{1,5}$') { $usageError = "--web-port must be a number, not '$WEB_PORT'" }
 if ($usageError) {
   [Console]::Error.WriteLine((Show-Usage))
   [Console]::Error.WriteLine("error: $usageError")
@@ -165,6 +180,12 @@ try {
   if ($DO_OLLAMA -and -not (Get-Cfg 'OLLAMA_SETUP')) {
     Die 'this bundle was built without the Windows version of Ollama. Rebuild it with --targets windows, or re-run with --no-ollama.'
   }
+  # The page runs on the LibreTranslate image, so there is none without Docker.
+  if (-not $DO_DOCKER) { $DO_WEB = $false }
+  $WEB_INSTALLER = Join-Path $HERE 'install-web.ps1'
+  if ($DO_WEB -and -not ([System.IO.File]::Exists($WEB_INSTALLER) -and [System.IO.File]::Exists((Join-Path $HERE 'web\app.py')))) {
+    Die "the translation page's files (install-web.ps1 and the web folder) are missing from the bundle. Copy them again from the original, or re-run with --no-web."
+  }
 
   # ---------------------------------------------------------------- checksums
   if ($DO_VERIFY) {
@@ -194,6 +215,14 @@ try {
 
   # ----------------------------------------------------------- LibreTranslate
   if ($DO_DOCKER) {
+    # Found out now, not after the long load, an earlier install's LibreTranslate
+    # has been removed, or a new one has been started without a page of its own.
+    # A page from an earlier install holds the port and is replaced.
+    if ($DO_WEB -and (Get-ToolOutput 'docker' @('container', 'inspect', '--format', '{{json .Config.Labels}}', $WEB_NAME)).Code -ne 0 `
+        -and (Test-PortInUse ([int]$WEB_PORT))) {
+      Die "port $WEB_PORT, which the translation page uses, is already in use; pass --web-port with a free one"
+    }
+
     Say "Loading $IMAGE into Docker"
     & docker load -i (Join-Path $HERE $LT_TAR.Replace('/', '\'))
     if ($LASTEXITCODE -ne 0) {
@@ -218,8 +247,17 @@ try {
     }
     if (Test-PortInUse ([int]$PORT)) { Die "port $PORT is already in use; pass --port with a free one" }
 
-    Say "Starting LibreTranslate on $LT_URL"
-    & docker run -d --name $NAME --label airgapped-translation=1 --pull never --restart unless-stopped -p "127.0.0.1:${PORT}:5000" $LOADED_ID | Out-Null
+    # Where the translation page goes on, LibreTranslate's own page is turned
+    # off: it keeps no record of a translation and makes no check of one. The
+    # service still answers the translation page and translate.cmd.
+    $ltOptions = @()
+    if ($DO_WEB) {
+      $ltOptions = @('-e', 'LT_DISABLE_WEB_UI=true')
+      Say "Starting LibreTranslate on $LT_URL, without its own web page"
+    } else {
+      Say "Starting LibreTranslate on $LT_URL"
+    }
+    & docker run -d --name $NAME --label airgapped-translation=1 --pull never --restart unless-stopped -p "127.0.0.1:${PORT}:5000" @ltOptions $LOADED_ID | Out-Null
     if ($LASTEXITCODE -ne 0) { Die 'docker could not start the LibreTranslate container; see the message above' }
     if (-not (Wait-Url "$LT_URL/languages" 150 2)) {
       & docker logs --tail 30 $NAME
@@ -302,6 +340,17 @@ try {
   if ($DO_DOCKER) { $settings += "LT_IMAGE=$IMAGE`nLT_IMAGE_ID_INSTALLED=$LOADED_ID`n" }
   [System.IO.File]::AppendAllText((Join-Path $PREFIX 'bundle.env'), $settings)
 
+  # --------------------------------------------------------- translation page
+  # install-web.ps1 is also how the page is replaced later, from a small folder
+  # of its own. Its files were checked above with the rest of the bundle.
+  $WEB_URL = "http://127.0.0.1:$WEB_PORT"
+  if ($DO_WEB) {
+    & $WEB_INSTALLER --prefix $PREFIX --port $WEB_PORT --name $WEB_NAME --skip-verify --part-of-install
+    if ($LASTEXITCODE -ne 0) {
+      Die 'the translation page did not start; the lines above say why. LibreTranslate and the translate helper are installed. Run install.cmd again once that is put right, or with --no-web to have LibreTranslate''s own page instead.'
+    }
+  }
+
   # ------------------------------------------------------------ launch + test
   $LT_OK = 'not checked'
   if ($DO_DOCKER) {
@@ -311,7 +360,8 @@ try {
     $test = Invoke-TestTranslation 'libre' $from $to
     if (-not $test.Ok) { Die 'LibreTranslate is up but the test translation failed' }
     Note "LibreTranslate test ($from->$to): $($test.Text)"
-    $LT_OK = "$LT_URL (open in a browser)"
+    if ($DO_WEB) { $LT_OK = 'running; use it from the translation page or translate.cmd' }
+    else { $LT_OK = "$LT_URL (open in a browser)" }
   }
 
   $OLLAMA_OK = 'not checked'
@@ -340,7 +390,12 @@ try {
   Say 'Done'
   if (-not $DO_DOCKER) { $LT_OK = 'skipped' }
   if (-not $DO_OLLAMA) { $OLLAMA_OK = 'skipped' }
+  if ($DO_WEB) { $WEB_OK = "$WEB_URL (open in a browser)" }
+  elseif ($DO_DOCKER -and (Get-ToolOutput 'docker' @('container', 'inspect', '--format', '{{json .Config.Labels}}', $WEB_NAME)).Code -eq 0) {
+    $WEB_OK = 'skipped; the one an earlier install started was left as it is'
+  } else { $WEB_OK = 'skipped' }
   Write-Host ''
+  Write-Host "  Translation page $WEB_OK"
   Write-Host "  LibreTranslate   $LT_OK"
   Write-Host "  Ollama           $OLLAMA_OK"
   Write-Host "  Helper           $(Join-Path $PREFIX 'translate.cmd') --help"
@@ -348,6 +403,7 @@ try {
   Write-Host "  How to use it    $(Join-Path $PREFIX 'README.txt')"
   if (-not $TEST_FILES) { $TEST_FILES = 'none in this bundle' }
   Write-Host "  Files to try     $TEST_FILES"
+  if ($DO_WEB -and $DO_OPEN) { try { Start-Process -FilePath $WEB_URL } catch { } }
 } catch {
   $exitCode = 1
   if ($script:Died) { [Console]::Error.WriteLine("error: $($_.Exception.Message)") }

@@ -39,10 +39,14 @@ class BundleFixture:
         self.models = self.root / "models"
         self.settings = {}
         self.port = "56123"
+        self.web_port = "56124"
         if WINDOWS:
-            with socket.socket() as sock:
+            # Both held at once, so the second isn't given the first's number.
+            with socket.socket() as sock, socket.socket() as web_sock:
                 sock.bind(("127.0.0.1", 0))
+                web_sock.bind(("127.0.0.1", 0))
                 self.port = str(sock.getsockname()[1])
+                self.web_port = str(web_sock.getsockname()[1])
         (self.root / "state.json").write_text('{"container":false,"docker_started":false}')
         self.environment = dict(os.environ, HOSHI_INSTALL_TEST_ROOT=str(self.root),
                                 OLLAMA_MODELS=str(self.models), OLLAMA_HOST="127.0.0.1:11434")
@@ -52,7 +56,8 @@ class BundleFixture:
         for name in tuple(self.environment):
             if name.upper() == "PSMODULEPATH":
                 del self.environment[name]
-        for name in ("install.sh", "install.ps1", "install.cmd", "install-web.sh", "languages.tsv"):
+        for name in ("install.sh", "install.ps1", "install.cmd", "install-web.sh", "install-web.ps1",
+                     "install-web.cmd", "languages.tsv"):
             data = (ROOT / "bundle" / name).read_bytes()
             if name.endswith(".cmd"):
                 data = data.replace(b"\r\n", b"\n").replace(b"\n", b"\r\n")
@@ -112,6 +117,7 @@ exit 0
         env = dict(self.environment)
         for setting, variable in (("libre_down", "HOSHI_TEST_LIBRE_DOWN"),
                                   ("ollama_down", "HOSHI_TEST_OLLAMA_DOWN"),
+                                  ("web_down", "HOSHI_TEST_WEB_DOWN"),
                                   ("translation_fails", "HOSHI_TEST_TRANSLATION_FAIL")):
             env[variable] = "1" if self.settings.get(setting) else "0"
         done = subprocess.run(self.command(*options), env=env, input="\n",
@@ -136,7 +142,10 @@ exit 0
 
 
 class InstallerCases:
-    web_name = None
+    web_name = "translation-web"
+
+    def started(self):
+        return [call for call in self.calls("docker") if call[0] == "run" and "-d" in call]
 
     def test_install_copies_payload_and_records_actual_image(self):
         self.run_installer()
@@ -161,10 +170,27 @@ class InstallerCases:
         self.run_installer()
         self.assertEqual(translation.read_text(), "Existing translation.\n")
         removals = [call for call in self.calls("docker") if call[0] == "rm"]
-        expected = [["rm", "-f", "test-libre"]]
-        if self.web_name:
-            expected.append(["rm", "-f", self.web_name])
-        self.assertEqual(removals, expected)
+        self.assertEqual(removals, [["rm", "-f", "test-libre"], ["rm", "-f", self.web_name]])
+
+    def test_translation_page_takes_the_place_of_libretranslates_own(self):
+        self.run_installer()
+        libre, page = self.started()
+        self.assertIn("LT_DISABLE_WEB_UI=true", libre)
+        self.assertEqual(page[page.index("--name") + 1], self.web_name)
+        self.assertIn(f"127.0.0.1:{self.web_port}:8080", page)
+        self.assertEqual((self.prefix / "web/app.py").read_bytes(), (self.bundle / "web/app.py").read_bytes())
+
+    def test_no_web_leaves_libretranslates_own_page_on(self):
+        self.run_installer("--no-web")
+        (libre,) = self.started()
+        self.assertNotIn("LT_DISABLE_WEB_UI=true", libre)
+        self.assertFalse((self.prefix / "web").exists())
+
+    def test_page_start_failure_is_not_reported_as_done(self):
+        self.settings["web_down"] = True
+        message = self.run_installer(success=False)
+        self.assertIn("page did not start", message)
+        self.assertNotIn("==> Done", message)
 
     def test_tampered_file_fails_before_installing(self):
         self.write("ollama/models/blobs/test-model", "tampered")
@@ -263,11 +289,12 @@ class MacFixture(BundleFixture):
 @unittest.skipUnless(sys.platform == "darwin", "Mac installer tests need macOS")
 class MacInstallerTests(MacFixture, InstallerCases, unittest.TestCase):
     helper = "translate.sh"
-    web_name = "translation-web"
 
     def command(self, *options):
         return ["/bin/bash", str(self.bundle / "install.sh"), "--prefix", str(self.prefix),
-                "--app-dir", str(self.apps), "--port", self.port, "--name", "test-libre", *options]
+                "--app-dir", str(self.apps), "--port", self.port, "--name", "test-libre",
+                "--web-port", self.web_port, *options]
+
     def test_stopped_docker_is_handled_without_real_services(self):
         self.settings["docker_down"] = True
         if Path("/Applications/Docker.app").is_dir():
@@ -313,8 +340,17 @@ class MacInstallerTests(MacFixture, InstallerCases, unittest.TestCase):
         self.assertFalse(self.calls("hdiutil"))
 
 
+class WindowsFixture(BundleFixture):
+    def stubbed(self, installer, arguments):
+        argument_file = self.root / "arguments.json"
+        argument_file.write_text(json.dumps(arguments))
+        return [WINDOWS_RUNTIME, "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+                str(ROOT / "tests/install_stubs.ps1"), "-Installer", str(self.bundle / installer),
+                "-ArgumentsFile", str(argument_file)]
+
+
 @unittest.skipUnless(WINDOWS and WINDOWS_RUNTIME, "Windows installer tests need Windows")
-class WindowsInstallerTests(BundleFixture, InstallerCases, unittest.TestCase):
+class WindowsInstallerTests(WindowsFixture, InstallerCases, unittest.TestCase):
     helper = "translate.ps1"
 
     @classmethod
@@ -338,12 +374,8 @@ class WindowsInstallerTests(BundleFixture, InstallerCases, unittest.TestCase):
         (self.root / "fake-ollama.exe").write_bytes(self.ollama_bytes)
 
     def command(self, *options):
-        arguments = ["--prefix", str(self.prefix), "--port", self.port, "--name", "test-libre", *options]
-        argument_file = self.root / "arguments.json"
-        argument_file.write_text(json.dumps(arguments))
-        return [WINDOWS_RUNTIME, "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
-                str(ROOT / "tests/install_stubs.ps1"), "-Installer", str(self.bundle / "install.ps1"),
-                "-ArgumentsFile", str(argument_file)]
+        return self.stubbed("install.ps1", ["--prefix", str(self.prefix), "--port", self.port, "--name", "test-libre",
+                                            "--web-port", self.web_port, *options])
 
     def test_stopped_docker_is_reported(self):
         self.settings["docker_down"] = True
@@ -365,16 +397,16 @@ class WindowsInstallerTests(BundleFixture, InstallerCases, unittest.TestCase):
         self.settings["setup_fails"] = True
         self.assertIn("Ollama installer did not finish", self.run_installer(success=False))
 
-    def test_cmd_launcher_help_and_failure_status(self):
-        for option, expected in (("--help", 0), ("--unknown", 1)):
-            with self.subTest(option=option):
-                done = subprocess.run(f'"{self.bundle / "install.cmd"}" {option}', shell=True,
-                                      env=self.environment, input="\n", capture_output=True, text=True, timeout=20)
-                self.assertEqual(done.returncode, expected, done.stdout + done.stderr)
+    def test_cmd_launchers_help_and_failure_status(self):
+        for launcher in ("install.cmd", "install-web.cmd"):
+            for option, expected in (("--help", 0), ("--unknown", 1)):
+                with self.subTest(launcher=launcher, option=option):
+                    done = subprocess.run(f'"{self.bundle / launcher}" {option}', shell=True,
+                                          env=self.environment, input="\n", capture_output=True, text=True, timeout=20)
+                    self.assertEqual(done.returncode, expected, done.stdout + done.stderr)
 
 
-@unittest.skipUnless(sys.platform == "darwin", "web installer tests need macOS")
-class WebInstallerTests(MacFixture, unittest.TestCase):
+class WebInstallerCases:
     test_foreign_container_is_never_removed = InstallerCases.test_foreign_container_is_never_removed
     test_port_conflict_is_reported = InstallerCases.test_port_conflict_is_reported
 
@@ -388,10 +420,6 @@ class WebInstallerTests(MacFixture, unittest.TestCase):
             "GEMMA_MODELS=translategemma:12b\nDEFAULT_MODEL=translategemma:12b\n"
         )
 
-    def command(self, *options):
-        return ["/bin/bash", str(self.bundle / "install-web.sh"), "--prefix", str(self.prefix),
-                "--port", self.port, "--name", "test-web", "--no-open", *options]
-
     def test_web_installer_publishes_only_on_loopback(self):
         self.run_installer()
         run = next(call for call in self.calls("docker") if call[0] == "run")
@@ -399,6 +427,18 @@ class WebInstallerTests(MacFixture, unittest.TestCase):
         self.assertIn("/uploads:rw,mode=1777", run)
         self.assertIn("sha256:test-loaded-image", " ".join(run))
         self.assertEqual((self.prefix / "web/app.py").read_bytes(), (self.bundle / "web/app.py").read_bytes())
+
+    def test_page_is_told_the_folder_and_the_system_it_is_on(self):
+        self.run_installer()
+        run = next(call for call in self.calls("docker") if call[0] == "run")
+        # Compared as a place, not as text: either side may spell the temporary
+        # folder its own way (a symlink on macOS, a short name on Windows).
+        folder = next(arg for arg in run if arg.startswith("HOST_DATA_DIR=")).split("=", 1)[1]
+        self.assertTrue(os.path.samefile(folder, self.prefix / "translations"))
+        self.assertIn(f"{folder}:/data", run)
+        self.assertIn(f"HOST_OS={self.host_os}", run)
+        self.assertIn("LT_URL=http://host.docker.internal:5050", run)
+        self.assertIn("OLLAMA_API=http://host.docker.internal:11434", run)
 
     def test_web_uses_installed_image_when_tag_moves_or_disappears(self):
         for change in ("tag_moved", "tag_missing"):
@@ -457,6 +497,24 @@ class WebInstallerTests(MacFixture, unittest.TestCase):
     def test_page_start_failure_is_reported(self):
         self.settings["web_down"] = True
         self.assertIn("page did not start", self.run_installer(success=False))
+
+
+@unittest.skipUnless(sys.platform == "darwin", "Mac web installer tests need macOS")
+class WebInstallerTests(WebInstallerCases, MacFixture, unittest.TestCase):
+    host_os = "mac"
+
+    def command(self, *options):
+        return ["/bin/bash", str(self.bundle / "install-web.sh"), "--prefix", str(self.prefix),
+                "--port", self.port, "--name", "test-web", "--no-open", *options]
+
+
+@unittest.skipUnless(WINDOWS and WINDOWS_RUNTIME, "Windows web installer tests need Windows")
+class WindowsWebInstallerTests(WebInstallerCases, WindowsFixture, unittest.TestCase):
+    host_os = "windows"
+
+    def command(self, *options):
+        return self.stubbed("install-web.ps1", ["--prefix", str(self.prefix), "--port", self.port,
+                                                "--name", "test-web", "--no-open", *options])
 
 
 if __name__ == "__main__":
