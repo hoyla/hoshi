@@ -58,10 +58,12 @@ class BundleFixture:
                 del self.environment[name]
         for name in ("install.sh", "install.ps1", "install.cmd", "install-web.sh", "install-web.ps1",
                      "install-web.cmd", "languages.tsv", "Install.command", "Start Translation.command",
-                     "Start Translation.cmd", "start-translation.ps1"):
+                     "Start Translation.cmd", "start-translation.ps1", "Hoshi Offline Translation.applescript",
+                     "icons/hoshi.icns", "icons/hoshi.ico"):
             data = (ROOT / "bundle" / name).read_bytes()
             if name.endswith(".cmd"):
                 data = data.replace(b"\r\n", b"\n").replace(b"\n", b"\r\n")
+            (self.bundle / name).parent.mkdir(parents=True, exist_ok=True)
             (self.bundle / name).write_bytes(data)
         self.write("bundle.env", """BUNDLE_BUILT_UTC=2026-11-18T00:00:00Z
 SOURCE_COMMIT=fixture-commit
@@ -167,7 +169,8 @@ class BundleBuildTests(unittest.TestCase):
     def test_build_copies_the_launchers_it_ships(self):
         build = (ROOT / "build-bundle.sh").read_text()
         for name in ("Install.command", "Start Translation.command", "Start Translation.cmd",
-                     "start-translation.ps1"):
+                     "start-translation.ps1", "Hoshi Offline Translation.applescript", "icons/hoshi.icns",
+                     "icons/hoshi.ico"):
             with self.subTest(name=name):
                 self.assertTrue((ROOT / "bundle" / name).is_file())
                 self.assertIn(name, build)
@@ -205,14 +208,21 @@ class InstallerCases:
         self.assertNotIn("did not finish", message)
         self.assertNotIn("already has an install", message)
         self.assertNotIn("GB of memory", message.split("==> Done")[1]) # 16 GB here: nothing to remark on
+        # the app (Mac) or Start-menu entry (Windows) that starts it all after a restart
+        self.assert_launcher_made(self.launcher())
+        self.assertIn(f"{self.launcher_key}={self.launcher()}", settings)
+        self.assertIn("Hoshi Offline Translation", message.split("==> Done")[1])
 
     def test_rerun_replaces_only_our_container_and_keeps_translations(self):
         self.settings["old_image_present"] = True # in Docker, but no install of ours recorded it
         self.run_installer()
         translation = self.prefix / "keep.en.txt"
         translation.write_text("Existing translation.\n")
+        self.mark_launcher()
         message = self.run_installer()
         self.assertEqual(translation.read_text(), "Existing translation.\n")
+        self.assertFalse(self.launcher_marked()) # the installer's own, so made again
+        self.assert_launcher_made(self.launcher())
         self.assertIn("built 2026-11-18T00:00:00Z from commit fixture-commit", message)
         self.assertIn("same bundle", message)
         self.assertEqual(self.image_removals(), [])
@@ -414,17 +424,23 @@ class InstallerCases:
         self.assert_ollama_installs(2)
         self.assertIn("OLLAMA_APP_BY_INSTALLER=1", self.installed())
 
-    def test_ollama_that_was_already_there_is_never_replaced(self):
+    def test_ollama_and_launcher_that_were_already_there_are_never_replaced(self):
         self.existing_ollama()
         self.newer_ollama_in_bundle()
+        self.existing_launcher()
         message = self.run_installer()
         self.assertIn("leaving it as it is", message)
         self.assertIn("To switch", message)
         self.assert_ollama_installs(0)
         self.assertIn("OLLAMA_APP_BY_INSTALLER=0", self.installed())
+        self.assertIn("didn't make", message.split("==> Done")[1])
+        self.assertTrue(self.launcher_marked())
+        self.assertNotIn(self.launcher_key, self.installed())
         # and a second run does not take the first run's record as its own work
-        self.assertIn("leaving it as it is", self.run_installer())
+        message = self.run_installer()
+        self.assertIn("leaving it as it is", message)
         self.assert_ollama_installs(0)
+        self.assertTrue(self.launcher_marked())
 
     # ---- failures
     def test_failure_ends_with_what_stopped_and_that_a_rerun_is_safe(self):
@@ -498,8 +514,135 @@ class MacInstallerTests(MacFixture, InstallerCases, unittest.TestCase):
 
     start_script = "Start Translation.command"
 
-    def start_command(self):
-        return ["/bin/bash", str(self.prefix / self.start_script)]
+    def start_command(self, *options):
+        return ["/bin/bash", str(self.prefix / self.start_script), *options]
+
+    # ---- the Hoshi Offline Translation app
+    launcher_key = "LAUNCHER_APP"
+
+    def launcher(self):
+        return self.apps / "Hoshi Offline Translation.app"
+
+    def assert_launcher_made(self, app):
+        info = plistlib.loads((app / "Contents/Info.plist").read_bytes())
+        self.assertEqual(info["CFBundleIdentifier"], "local.hoshi.offline-translation")
+        self.assertEqual(info["CFBundleName"], "Hoshi Offline Translation")
+        resources = app / "Contents/Resources"
+        self.assertEqual((resources / "install-folder.txt").read_text(), f"{self.prefix}\n")
+        self.assertEqual((resources / "applet.icns").read_bytes(), (ROOT / "bundle/icons/hoshi.icns").read_bytes())
+        self.assertTrue((resources / "Scripts/main.scpt").is_file())
+        # changed after osacompile signed it, so signed again
+        done = subprocess.run(["codesign", "--verify", "--strict", str(app)], capture_output=True, text=True)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertFalse((app.parent / ".hoshi-app-from-bundle").exists())
+
+    def mark_launcher(self):
+        (self.launcher() / "Contents/marker.txt").write_text("from before\n")
+
+    def launcher_marked(self):
+        return (self.launcher() / "Contents/marker.txt").exists()
+
+    def existing_launcher(self):
+        info = self.launcher() / "Contents/Info.plist"
+        info.parent.mkdir(parents=True)
+        info.write_bytes(plistlib.dumps({"CFBundleIdentifier": "someone.else"}))
+        self.mark_launcher()
+
+    def test_app_goes_in_the_home_folders_applications_when_the_app_folder_is_read_only(self):
+        self.apps.mkdir()
+        self.apps.chmod(0o555)
+        self.addCleanup(self.apps.chmod, 0o755)
+        home = self.root / "home"
+        home.mkdir()
+        self.environment["HOME"] = str(home)
+        message = self.run_installer("--no-ollama")
+        app = home / "Applications/Hoshi Offline Translation.app"
+        self.assert_launcher_made(app)
+        self.assertIn("can't be written to", message)
+        self.assertIn(f"LAUNCHER_APP={app}", self.installed())
+        self.assertFalse(self.launcher().exists())
+
+    def start_for_app(self, success=True):
+        """What the app would show: the starter run as the app runs it."""
+        status = self.root / "status.txt"
+        self.run_command(self.start_command("--app", str(status)), success)
+        lines = status.read_text().splitlines()
+        progress = [line[10:] for line in lines if line.startswith("progress: ")]
+        dialog = "\n".join(line[8:] for line in lines if line.startswith("dialog: "))
+        self.assertTrue(lines[-1].startswith("done: "), lines)
+        return progress, dialog, lines[-1][6:]
+
+    def test_app_says_what_did_not_start_and_what_to_do(self):
+        self.set_bundle(SUPPORT="Sam on the data desk, extension 4321")
+        self.run_installer("--no-open")
+        self.assertEqual((self.launcher() / "Contents/Resources/support.txt").read_text(),
+                         "Sam on the data desk, extension 4321\n")
+        progress, dialog, status = self.start_for_app()
+        self.assertEqual((dialog, status), ("", "0")) # all well: the page opens and nothing is said
+        self.assertIn("Waiting for LibreTranslate. It takes a minute or two to load its languages.", progress)
+        self.assertEqual(len(self.opened_pages()), 1)
+        cases = (
+            # setting, what the dialog names, whether the page still opens
+            ({"libre_down": True}, "LibreTranslate: Docker is running but LibreTranslate didn't answer", True),
+            ({"web_down": True}, "The translation page: Docker is running but the page didn't answer", False),
+            ({"ollama_down": True}, "TranslateGemma: Ollama, which runs it, didn't answer", True),
+            ({"docker_down": True, "open_fails": True}, "Docker Desktop: it isn't in Applications", False),
+            ({"docker_never_ready": True}, "Docker Desktop didn't start", False),
+            ({"docker_never_ready": True, "docker_backend_running": True},
+             "Docker Desktop is open but didn't become ready", False),
+        )
+        for settings, named, page_opens in cases:
+            with self.subTest(settings=settings):
+                self.settings = settings
+                (self.root / "calls.jsonl").unlink(missing_ok=True)
+                state = json.loads((self.root / "state.json").read_text())
+                state["docker_started"] = False # as after a restart
+                (self.root / "state.json").write_text(json.dumps(state))
+                progress, dialog, status = self.start_for_app(success=False)
+                self.assertEqual(status, "1")
+                self.assertIn(named, dialog)
+                self.assertIn("For help: Sam on the data desk, extension 4321", dialog)
+                self.assertEqual(bool(self.opened_pages()), page_opens)
+                self.assertEqual(dialog.startswith("The translation page is open"), page_opens)
+                if settings.get("docker_backend_running"):
+                    self.assertIn("accept its", dialog)
+        # Ollama moved or removed: said at once, not after a wait for it
+        self.settings = {"ollama_down": True}
+        shutil.rmtree(self.apps / "Ollama.app")
+        progress, dialog, status = self.start_for_app(success=False)
+        self.assertIn("TranslateGemma: Ollama, which runs it, isn't at", dialog)
+        self.assertNotIn("Waiting for TranslateGemma (Ollama)", progress)
+        self.assertNotIn("Opening Ollama", progress)
+
+    def test_app_started_twice_waits_once(self):
+        self.run_installer("--no-open")
+        lock = self.prefix / ".start-translation.lock"
+        lock.mkdir()
+        (lock / "pid").write_text(f"{os.getpid()}\n") # a start that is still running
+        (self.root / "calls.jsonl").unlink()
+        _, dialog, status = self.start_for_app(success=False)
+        self.assertEqual(status, "3")
+        self.assertIn("already being started", dialog)
+        self.assertFalse(self.calls("open")) # opened nothing, waited for nothing
+        self.assertTrue(lock.is_dir()) # and left the other start's lock alone
+        # one left by a start that was stopped part-way doesn't stop the next
+        (lock / "pid").write_text("999999\n")
+        self.assertEqual(self.start_for_app()[2], "0")
+        self.assertFalse(lock.exists())
+
+    def test_app_copied_to_a_mac_without_the_install_says_so(self):
+        self.prefix = self.root / "nothing installed here"
+        self.prefix.mkdir()
+        shutil.copy(self.bundle / self.start_script, self.prefix)
+        _, dialog, status = self.start_for_app(success=False)
+        self.assertEqual(status, "1")
+        self.assertIn("isn't installed on this Mac", dialog)
+        self.assertIn("Install.command", dialog)
+
+    def test_no_app_makes_none(self):
+        self.run_installer("--no-app", "--no-ollama", "--no-docker")
+        self.assertFalse(self.launcher().exists())
+        self.assertNotIn("LAUNCHER_APP", self.installed())
 
     def opened_pages(self):
         return [call[0] for call in self.calls("open") if call[0].startswith("http://")]
@@ -632,12 +775,48 @@ class WindowsInstallerTests(WindowsFixture, InstallerCases, unittest.TestCase):
 
     def command(self, *options):
         return self.stubbed("install.ps1", ["--prefix", str(self.prefix), "--port", self.port, "--name", "test-libre",
-                                            "--web-port", self.web_port, *options])
+                                            "--web-port", self.web_port, "--start-menu-dir", str(self.start_menu),
+                                            *options])
 
     start_script = "start-translation.ps1"
 
     def start_command(self):
         return self.stubbed(self.prefix / self.start_script, [])
+
+    # ---- the Start-menu entry
+    launcher_key = "START_MENU_SHORTCUT"
+
+    @property
+    def start_menu(self):
+        return self.root / "start menu"
+
+    def launcher(self):
+        return self.start_menu / "Hoshi Offline Translation.lnk"
+
+    def assert_launcher_made(self, link):
+        script = ("$s = (New-Object -ComObject WScript.Shell).CreateShortcut($env:HOSHI_TEST_LINK); "
+                  "$s.TargetPath; $s.WorkingDirectory; $s.IconLocation")
+        done = subprocess.run([WINDOWS_RUNTIME, "-NoProfile", "-Command", script],
+                              env=dict(self.environment, HOSHI_TEST_LINK=str(link)),
+                              capture_output=True, text=True, timeout=30)
+        target, folder, icon = done.stdout.splitlines()[:3]
+        self.assertTrue(os.path.samefile(target, self.prefix / "Start Translation.cmd"))
+        self.assertTrue(os.path.samefile(folder, self.prefix))
+        self.assertTrue(icon.endswith(",0"), icon)
+        self.assertTrue(os.path.samefile(icon[:-2], self.prefix / "hoshi.ico"))
+        self.assertEqual((self.prefix / "hoshi.ico").read_bytes(), (ROOT / "bundle/icons/hoshi.ico").read_bytes())
+
+    # A shortcut file can't hold a marker of its own: an old date stands for one.
+    def mark_launcher(self):
+        os.utime(self.launcher(), (946684800, 946684800))
+
+    def launcher_marked(self):
+        return self.launcher().stat().st_mtime < 978307200
+
+    def existing_launcher(self):
+        self.start_menu.mkdir()
+        self.launcher().write_bytes(b"someone else's shortcut")
+        self.mark_launcher()
 
     def opened_pages(self):
         return [call[0] for call in self.calls("Start-Process") if call[0].startswith("http://")]

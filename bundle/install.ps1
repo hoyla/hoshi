@@ -28,6 +28,8 @@ $DO_WEB = $true
 $DO_LAUNCH = $true
 $DO_OPEN = $true
 $DO_SPACE = $true
+$DO_SHORTCUT = $true
+$START_MENU = ''
 
 # So the test translations, which have accents, are read back and shown intact.
 try { [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false) } catch { }
@@ -50,6 +52,10 @@ Usage: install.cmd [options]
   --no-launch      Install Ollama but don't wait for it or test it
                    (its own installer still starts it)
   --no-open        Don't open the translation page in a browser at the end
+  --no-shortcut    Don't put Hoshi Offline Translation in the Start menu
+  --start-menu-dir DIR
+                   Where that Start-menu entry goes (default: your own
+                   Start menu's Programs folder)
   -h, --help       Show this help
 "@
 }
@@ -172,7 +178,7 @@ $usageError = ''
 for ($i = 0; $i -lt $ARGV.Length -and -not $usageError; $i++) {
   $arg = [string]$ARGV[$i]
   $value = ''
-  if (@('--port', '--name', '--web-port', '--web-name', '--prefix') -ccontains $arg) {
+  if (@('--port', '--name', '--web-port', '--web-name', '--prefix', '--start-menu-dir') -ccontains $arg) {
     if ($i + 1 -ge $ARGV.Length -or -not [string]$ARGV[$i + 1]) { $usageError = "$arg needs a value"; break }
     $i++
     $value = [string]$ARGV[$i]
@@ -189,6 +195,8 @@ for ($i = 0; $i -lt $ARGV.Length -and -not $usageError; $i++) {
   elseif ($arg -ceq '--no-web') { $DO_WEB = $false }
   elseif ($arg -ceq '--no-launch') { $DO_LAUNCH = $false }
   elseif ($arg -ceq '--no-open') { $DO_OPEN = $false }
+  elseif ($arg -ceq '--no-shortcut') { $DO_SHORTCUT = $false }
+  elseif ($arg -ceq '--start-menu-dir') { $START_MENU = $value }
   elseif ($arg -ceq '-h' -or $arg -ceq '--help') { Show-Usage; exit 0 }
   else { $usageError = "unknown option: $arg" }
 }
@@ -244,6 +252,7 @@ try {
   $OLD_OLLAMA_OURS = Get-Old 'OLLAMA_APP_BY_INSTALLER'
   $OLD_WEB_URL = Get-Old 'WEB_URL'
   $OLD_WEB_CONTAINER = Get-Old 'WEB_CONTAINER'
+  $OLD_SHORTCUT = Get-Old 'START_MENU_SHORTCUT'
   $CLOSING = New-Object System.Collections.ArrayList # lines for the end of the run, where they are still on screen
   if ($OLD_BUILT) {
     Say 'This PC already has an install'
@@ -537,9 +546,56 @@ try {
         [System.IO.File]::Copy($testFile, (Join-Path $TEST_FILES ([System.IO.Path]::GetFileName($testFile))), $true)
       }
     }
+    # the Start-menu entry's icon
+    $iconSource = Join-Path $HERE 'icons\hoshi.ico'
+    if ([System.IO.File]::Exists($iconSource)) { [System.IO.File]::Copy($iconSource, (Join-Path $PREFIX 'hoshi.ico'), $true) }
   } catch {
     Die "couldn't copy the translate helper into $PREFIX ($($_.Exception.Message)). $copyAdvice"
   }
+
+  # ---------------------------------------------------- the Start-menu entry
+  # What a journalist looks for after a restart: "Hoshi Offline Translation" in
+  # the Start menu, found by typing its name, not a file in a folder. It opens
+  # the Start Translation.cmd just copied. Only an entry an earlier run of this
+  # installer recorded is replaced. None goes on the desktop: on many managed
+  # PCs the desktop is synced to the network, and the Start menu is where
+  # Windows itself sends people to look.
+  $SHORTCUT = ''
+  $shortcutName = 'Hoshi Offline Translation.lnk'
+  $startCmd = Join-Path $PREFIX 'Start Translation.cmd'
+  # An account with no Start menu of its own (a service account) has no Programs folder.
+  if (-not $START_MENU) { $START_MENU = [Environment]::GetFolderPath('Programs') }
+  if ($DO_SHORTCUT -and $START_MENU -and [System.IO.File]::Exists($startCmd)) {
+    $START_MENU = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($START_MENU)
+    $link = Join-Path $START_MENU $shortcutName
+    Say "Putting Hoshi Offline Translation in the Start menu"
+    if ([System.IO.File]::Exists($link) -and $link -ne $OLD_SHORTCUT) {
+      Note "a Start-menu entry called Hoshi Offline Translation is already there that this installer didn't put there; leaving it"
+      [void]$CLOSING.Add("A Start-menu entry called Hoshi Offline Translation that this installer didn't make was left as it is.")
+      [void]$CLOSING.Add("  To start translation after a restart, double-click Start Translation in $PREFIX.")
+    } else {
+      try {
+        [void][System.IO.Directory]::CreateDirectory($START_MENU)
+        $shell = New-Object -ComObject WScript.Shell
+        $shortcut = $shell.CreateShortcut($link)
+        $shortcut.TargetPath = $startCmd
+        $shortcut.WorkingDirectory = $PREFIX
+        $shortcut.Description = 'Start offline translation and open the translation page'
+        $icon = Join-Path $PREFIX 'hoshi.ico'
+        if ([System.IO.File]::Exists($icon)) { $shortcut.IconLocation = "$icon,0" }
+        $shortcut.Save()
+        [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($shell)
+        $SHORTCUT = $link
+        Note $link
+      } catch {
+        Note "couldn't make the Start-menu entry ($($_.Exception.Message)); the rest of the install is not affected"
+        [void]$CLOSING.Add('The Start-menu entry for Hoshi Offline Translation could not be made. To start translation')
+        [void]$CLOSING.Add("  after a restart, double-click Start Translation in $PREFIX.")
+      }
+    }
+  }
+  # An entry an earlier run made stays recorded while it is there.
+  if (-not $SHORTCUT -and $OLD_SHORTCUT -and [System.IO.File]::Exists($OLD_SHORTCUT)) { $SHORTCUT = $OLD_SHORTCUT }
   # The images of earlier installs, to be removed once this one is working. Kept
   # on record until then, so a run that stops before that doesn't lose them.
   $PREVIOUS_IDS = New-Object System.Collections.ArrayList
@@ -573,6 +629,7 @@ try {
     $settings += "OLLAMA_APP=$OLD_OLLAMA_APP`nOLLAMA_APP_BY_INSTALLER=$ours`n"
   }
   if ($LEFT_MODELS.Count -gt 0) { $settings += "GEMMA_MODELS_PREVIOUS=$($LEFT_MODELS -join ',')`n" }
+  if ($SHORTCUT) { $settings += "START_MENU_SHORTCUT=$SHORTCUT`n" }
   try {
     [System.IO.File]::AppendAllText((Join-Path $PREFIX 'bundle.env'), $settings)
   } catch {
@@ -669,7 +726,12 @@ try {
   if (-not $TEST_FILES) { $TEST_FILES = 'none in this bundle' }
   Write-Host "  Files to try     $TEST_FILES"
   if ($LOG) { Write-Host "  Log of this run  $LOG" }
-  if ([System.IO.File]::Exists((Join-Path $PREFIX 'Start Translation.cmd'))) {
+  if ($SHORTCUT) {
+    Write-Host ''
+    Write-Host '  After the PC restarts, open "Hoshi Offline Translation" from the Start menu'
+    Write-Host '  (or type its name after pressing the Windows key) to start everything again.'
+    Write-Host "  `"Start Translation`" in $PREFIX does the same."
+  } elseif ([System.IO.File]::Exists((Join-Path $PREFIX 'Start Translation.cmd'))) {
     Write-Host ''
     Write-Host '  After the PC restarts, double-click "Start Translation" in'
     Write-Host "  $PREFIX to start everything again."
