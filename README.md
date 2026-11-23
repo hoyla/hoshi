@@ -16,8 +16,8 @@ More than 50 languages are supported.
 | | LibreTranslate | TranslateGemma 12B |
 |---|---|---|
 | Runs in | Docker | Ollama, natively on macOS or Windows |
-| Good for | Whole documents with formatting (.docx, .pptx, .pdf, .html ...), quick gisting | Best available quality on plain text |
-| Languages | 50 ([every Argos Translate model](https://www.argosopentech.com/argospm/index/)), 100 packages) | 55 core languages |
+| Good for | Whole documents with formatting (.docx, .pptx, .pdf, .html ...), quick gisting | Plain text; see the [reference evaluation](evaluation/README.md) for measured results |
+| Languages | 50 ([every Argos Translate model](https://www.argosopentech.com/argospm/index/), 100 packages) | 55 core languages |
 | On a Mac | [Hoshi's page](#the-web-page) on `127.0.0.1:5080`, `translate.sh` | The same page, `translate.sh`, Ollama's chat window |
 | On Windows | The same page on `127.0.0.1:5080`, `translate.cmd` | The same page, `translate.cmd`, Ollama's chat window |
 | Size in bundle | 9 to 11 GB per target | about 11.5 GB (12B and the smaller 4B), shared |
@@ -75,7 +75,12 @@ platform's big files can be left off a drive bound for one kind of machine
 
 ## Build (done on an internet connected Mac to create the installation material)
 
-Needs an Apple Silicon Mac with Docker running. For one target: about 35 GB
+Needs an Apple Silicon Mac with Docker running and Python 3 available as
+`python3`. The build uses Python's standard library for the web splitter
+check; it does not need the development test dependencies. Python is needed
+only on the build Mac, not on the airgapped target.
+
+For one target: about 35 GB
 free on the Mac, and 12 or 30 GB free inside Docker's own disk, depending on
 which image store Docker uses (see Things to know). For both targets: about
 50 GB on the Mac and twice the Docker figure. Docker Desktop keeps images in a
@@ -271,9 +276,10 @@ only the installer that starts it differs.
 - **Every bundle carries it.** `install.sh` starts it by running
   [bundle/install-web.sh](bundle/install-web.sh) as its last step, and
   `install.cmd` by running [bundle/install-web.ps1](bundle/install-web.ps1).
-- **The Windows side has not yet been run on a Windows PC** (as of
-  2026-11-19); the regression tests run `install-web.ps1` with a stand-in for
-  Docker. Two things can only be shown on a real one: that the container
+- **A real Windows installation with Docker Desktop and Ollama remains
+  unverified.** The regression workflow runs `install-web.ps1` natively on
+  Windows PowerShell 5.1 and PowerShell 7, with a stand-in for Docker. Two
+  things still need testing with the real services: that the container
   reaches Ollama, which listens on 127.0.0.1 alone, through
   `host.docker.internal` as it does on a Mac; and that the translations
   folder, a Windows folder handed to a Linux container, refuses to write over
@@ -749,13 +755,17 @@ own `--prefix`, `--port`, `--name`, `--web-port` and `--web-name`, and set
 `OLLAMA_MODELS` to a scratch folder so the model is not copied into the real
 store.
 
-## Status (2026-11-17)
+## Status
 
-This is the manual testing record from before the automated regression workflow
-described above was added.
+The [regression workflow](.github/workflows/regression.yml) now runs native
+macOS and Windows tests, including Windows PowerShell 5.1 and PowerShell 7.
+The installers use stand-ins for services and application setup; passing
+those tests does not establish that a full bundle works on a clean airgapped
+computer. [tests/README.md](tests/README.md) describes the coverage and limits.
 
-What has been tested and what has not. Except where it says "from this
-repository", the tests were run on the code as it stood in the private
+The manual testing record below includes historical tests and later checks
+from this repository. Except where it says "from this repository", the
+tests were run on the code as it stood in the private
 repository this one starts from (see History), on Apple Silicon Macs, most of
 it on macOS 26.7; the timings are from an M5 Max with 128 GB. PowerShell 7 for the
 Windows tests came from `mcr.microsoft.com/dotnet/sdk:8.0`, which has an Apple
@@ -843,10 +853,15 @@ emulation.
   against stand-ins. The page was looked at in the Claude desktop app's
   Chromium browser pane at desktop and phone widths, light and dark: title, icon beside the heading, favicon
 
-**The Windows installer.** Nothing has run on Windows. `install.ps1`'s logic
-was run in PowerShell 7 with stand-ins for Docker, robocopy and the Ollama
-installer and with its Windows paths rewritten for Linux: a full install, a
-re-run, an ARM PC, and each failure it reports (damaged or missing file,
+**The Windows installer.** The regression workflow runs the production
+installers and helpers natively on Windows under both PowerShell versions,
+with stand-ins for external services and application setup. A real Windows
+installation with Docker Desktop and Ollama is still outstanding.
+
+Earlier manual testing ran `install.ps1`'s logic in PowerShell 7 with
+stand-ins for Docker, robocopy and the Ollama installer and with its Windows
+paths rewritten for Linux: a full install, a re-run, an ARM PC, and each
+failure it reports (damaged or missing file,
 Docker stopped or in Windows-containers mode, full disk, someone else's
 container, port taken, failed copy, failed Ollama install, Ollama not
 answering). The lines that copy the test files were run on their own.

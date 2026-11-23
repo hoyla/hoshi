@@ -6,7 +6,8 @@ set its checker thresholds. It does not establish that FLORES was absent from
 either model's training data, or replace review by a bilingual subject expert.
 
 The [recorded results](results/report/report.md) contain 240 verified
-translations per engine. On this sample, TranslateGemma has the higher chrF++
+translations per engine, using LibreTranslate 1.9.6 and TranslateGemma 12B
+via Ollama 0.40.16. On this sample, TranslateGemma has the higher chrF++
 point estimate in eight directions; LibreTranslate has the higher estimate
 from English into French and Russian. These are reference-overlap results,
 not a general quality ranking. Human review is still unperformed.
@@ -70,23 +71,35 @@ SacreBLEU version are recorded with each report.
 
 ## Reproduce
 
-Preparing the subset requires the archive once; evaluation uses the committed
-subset and contacts only the configured local translation services. Model and
-service installation remain separate from this evaluation tool.
+Run these commands from the repository root. Scoring the recorded results
+needs no model or translation service:
+
+```bash
+python3 -m venv .cache/evaluation/venv
+.cache/evaluation/venv/bin/python -m pip install -r evaluation/requirements.txt
+.cache/evaluation/venv/bin/python evaluation/score.py --libre evaluation/results/libre.json --gemma evaluation/results/gemma.json --out .cache/evaluation/recorded-report
+```
+
+The committed `corpus.json` is ready to use. To regenerate it, first obtain
+the source archive, then run:
 
 ```bash
 python3 evaluation/prepare.py --archive /path/to/flores200_dataset.tar.gz
-python3 -m venv .cache/evaluation/venv
-.cache/evaluation/venv/bin/python -m pip install -r evaluation/requirements.txt
 ```
 
-With both engines already running locally:
+For a new inference run, start both engines locally first. Model and service
+installation remain separate from this tool; inference contacts only the
+configured local services. Save new results under the ignored cache directory:
 
 ```bash
-python3 evaluation/run.py --engine libre --work .cache/evaluation/libre-run --out evaluation/results/libre.json
-python3 evaluation/run.py --engine gemma --work .cache/evaluation/gemma-run --out evaluation/results/gemma.json
-.cache/evaluation/venv/bin/python evaluation/score.py --libre evaluation/results/libre.json --gemma evaluation/results/gemma.json --out evaluation/results/report
+python3 evaluation/run.py --engine libre --work .cache/evaluation/new-run/libre-work --out .cache/evaluation/new-run/libre.json
+python3 evaluation/run.py --engine gemma --work .cache/evaluation/new-run/gemma-work --out .cache/evaluation/new-run/gemma.json
+.cache/evaluation/venv/bin/python evaluation/score.py --libre .cache/evaluation/new-run/libre.json --gemma .cache/evaluation/new-run/gemma.json --out .cache/evaluation/new-run/report
 ```
+
+Use a fresh run directory after changing a model, runtime or helper. The
+committed `results/` directory preserves the original benchmark and is not
+the destination for new runs.
 
 `run.py --help` documents custom service URLs, container name and model. The
 runner supports the native Mac and Windows helpers. Scoring needs Perl, which
