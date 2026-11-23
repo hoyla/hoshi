@@ -9,10 +9,9 @@ Everything they need, language models included, is in this folder.
                    formatting. Fast. Quality is good enough to get the gist.
 
   TranslateGemma   A Google translation model run by the Ollama app.
-                   Noticeably better translations. Gives back plain text.
-                   Slower. It comes in two sizes: the standard one (12b)
-                   and a smaller one (4b) for computers where the standard
-                   one is too slow.
+                   Gives back plain text. Slower. It comes in two sizes:
+                   the standard one (12b) and a smaller one (4b) for
+                   computers where the standard one is too slow.
 
 You use both from one web page, http://127.0.0.1:5080, which checks each
 translation for dropped text and keeps a record of how it was made. There is
@@ -99,8 +98,9 @@ COPYING THE BUNDLE TO THE COMPUTER
      from the drive, or copy the folder to the computer first if you would
      rather. Installing from the drive saves disk space.
 
-The installer checks every file against the list in SHA256SUMS before it
-does anything, so a file damaged in copying is caught rather than installed.
+Before loading images or copying applications and models, the installer
+checks the files it uses against SHA256SUMS, so a file damaged in copying
+is caught rather than installed. It checks the computer's requirements first.
 
 
 INSTALLING ON A MAC
